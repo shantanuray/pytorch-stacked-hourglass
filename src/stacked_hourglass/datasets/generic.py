@@ -1,7 +1,4 @@
 """Generic dataset."""
-import gzip
-import json
-import os
 import random
 
 import pandas as pd
@@ -12,11 +9,12 @@ import torch.utils.data as data
 from importlib_resources import open_binary
 from scipy.io import loadmat
 from tabulate import tabulate
+import cv2
 
 import stacked_hourglass.res
-from stacked_hourglass.utils.imutils import load_image, draw_labelmap
+from stacked_hourglass.utils.imutils import draw_labelmap
 from stacked_hourglass.utils.misc import to_torch
-from stacked_hourglass.utils.transforms import shufflelr, crop, color_normalize, fliplr, transform
+from stacked_hourglass.utils.transforms import color_normalize, transform, cv2_crop
 
 # import imgaug.augmenters as iaa
 # from imgaug.augmentables import Keypoint, KeypointsOnImage
@@ -62,7 +60,7 @@ class Generic(data.Dataset):
 
     def __getitem__(self, index):
         """Get an image referenced by index."""
-        sf = self.scale_factor
+        sf = self.scale_factor  # Generally from 0 to 0.25
         rf = self.rot_factor
         if self.is_train:
             a = self.train_list.iloc[index]
@@ -73,36 +71,43 @@ class Generic(data.Dataset):
         pts = torch.Tensor(a['joint_self'])
         # pts[:, 0:2] -= 1  # Convert pts to zero based
 
-        c = torch.Tensor(a['objpos'])
-        s = a['scale_provided']
+        c = tuple(a['objpos'])
+        # In Mpii, scale_provided is the dim of the boundary box wrt 200 px
+        # We do not have a boundary box, so we assume a boundary box of inp_res
+        s = 1
 
-        # Adjust center/scale slightly to avoid cropping limbs
-        if c[0] != -1:
-            c[1] = c[1] + 15 * s
-            s = s * 1.25
+        # # Adjust scale slightly to avoid cropping limbs
+        # if c[0] != -1:
+        #     c[1] = c[1] + 15 * s
+        #     s = s * 1.25
 
         # For pose estimation with a centered/scaled figure
         nparts = pts.size(0)
-        img = load_image(img_path)  # CxHxW
+        img = cv2.imread(img_path, 0)  # HxWxC
+        rows, cols = img.shape
 
-        r = 0
         if self.is_train:
+            # Given sf, choose scale from [1-sf, 1+sf]
+            # For sf = 0.25, scale is chosen from [0.75, 1.25]
             s = torch.randn(1).mul_(sf).add_(1).clamp(1 - sf, 1 + sf)[0]
-            r = torch.randn(1).mul_(rf).clamp(-2 * rf, 2 * rf)[0] if random.random() <= 0.6 else 0
+            # Given rf, choose scale from [-rf, rf]
+            # For sf = 30, scale is chosen from [-30, 30]
+            r = torch.randn(1).mul_(rf).clamp(-rf, rf)[0] if random.random() <= 0.6 else 0
 
             # Flip
             if random.random() <= 0.5:
-                img = torch.from_numpy(fliplr(img.numpy())).float()
-                pts = shufflelr(pts, width=img.size(2), dataset='generic')
+                img = cv2.flip(img, 1)
+                pts = [[rows - x[0] - 1, x[1]] for x in pts]
 
             # Color
-            img[0, :, :].mul_(random.uniform(0.8, 1.2)).clamp_(0, 1)
-            img[1, :, :].mul_(random.uniform(0.8, 1.2)).clamp_(0, 1)
-            img[2, :, :].mul_(random.uniform(0.8, 1.2)).clamp_(0, 1)
+            img[:, :, 0].mul_(random.uniform(0.8, 1.2)).clamp_(0, 255)
+            img[:, :, 1].mul_(random.uniform(0.8, 1.2)).clamp_(0, 255)
+            img[:, :, 2].mul_(random.uniform(0.8, 1.2)).clamp_(0, 255)
 
-        # Prepare image and groundtruth map
-        inp = crop(img, c, s, [self.inp_res, self.inp_res], rot=r)
-        inp = color_normalize(inp, self.mean, self.std)
+        # Rotate, scale and crop image
+        inp, t = cv2_crop(img, c, s, (self.inp_res, self.inp_res), rot=r)
+        # TODO Update color normalize
+        # inp = color_normalize(inp, self.mean, self.std)
 
         # Generate ground truth
         tpts = pts.clone()
