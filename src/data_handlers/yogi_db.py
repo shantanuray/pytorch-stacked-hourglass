@@ -57,22 +57,36 @@ class YogiDB():
             image path,
             image width,
             image height,
-            objpos, [annotation x coordinate, annotation y coordinate]
-            joint_self: [[annotation x coordinate, annotation y coordinate,
-                    annotation confidence]]."""
+            objpos,
+            scale_provided,
+            joint_self
+            Legend:
+                - objpos is the approximate position of the center of the
+                boundary box - [annotation x coordinate,
+                                annotation y coordinate]
+                - scale_provided person scale w.r.t. 200 px height
+                - joint_self - [[annotation x coordinate,
+                                 annotation y coordinate,
+                                 annotation confidence]]
+            For hidden object (mouse), objpos = [-1, -1]
+            For hidden key-points,
+                - The objpos = center of image
+                - The confidence is 0."""
         annotations = []
         for i in annotation_tuples:
             if i[3] == 'hidden':
-                x, y = -1, -1
+                objpos = [i[1] / 2, i[1] / 2]  # Center of the image
                 confidence = 0.0
             else:
-                x, y = i[3], i[4]
+                objpos = [i[3] * i[1], i[4] * i[2]]
                 confidence = 1.0
             annotations.append({"dataset": image_set_name,
                                 "image_path": i[0],
                                 "img_width": i[1],
                                 "img_height": i[2],
-                                "objpos": [x * i[1], y * i[2]],
+                                "objpos": objpos,
                                 "scale_provided": 1.0,
-                                "joint_self": [[x * i[1], y * i[2], confidence]]})
+                                "joint_self": [[objpos[0],
+                                               objpos[1],
+                                               confidence]]})
         return(annotations)
