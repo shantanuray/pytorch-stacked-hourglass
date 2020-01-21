@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+import cv2
 
 from .imutils import im_to_numpy, im_to_torch
 from .misc import to_torch
@@ -72,6 +73,50 @@ def fliplr(x):
     return x.astype(float)
 
 
+def cv2_crop(img, center, scale, res, rot=0):
+    """Scale, rotate and crop wrt to objpos using cv2."""
+    rows, cols = img.shape
+    # Get transformation matrix "t"
+    # cv2.getRotationMatrix2D rotates and scales wrt center
+    t = cv2.getRotationMatrix2D(center, rot, scale)
+    # Translate the image with center matching with 'center'
+    t[0, 2] += rows / 2 - center[0]
+    t[1, 2] += cols / 2 - center[1]
+    # Rotate the image
+    img = cv2.warpAffine(img, t, (rows, cols))
+    # To include the entire rotated box in the cropped image,
+    # compute a box that will contain the rotated box of size res
+    # For example, to include a 256x256 that has been rotated 30 degrees,
+    # one will need a 349x349 box
+    abs_cos = abs(t[0, 0])
+    abs_sin = abs(t[0, 1])
+    # find the new width and height bounds
+    crop_boundary_w = int(res[0] * abs_sin + res[1] * abs_cos)
+    crop_boundary_h = int(res[0] * abs_cos + res[1] * abs_sin)
+    # Crop image around 'center' bounded by new box bounds
+    crop_x_bounds = torch.Tensor([-1, 1]).mul_(crop_boundary_w / 2).add_(rows / 2).clamp(0, rows)  # Max is size of the image
+    crop_y_bounds = torch.Tensor([-1, 1]).mul_(crop_boundary_h / 2).add_(cols / 2).clamp(0, cols)  # Max is size of the image
+    img = img[int(crop_x_bounds[0]):int(crop_x_bounds[1]),
+              int(crop_y_bounds[0]):int(crop_y_bounds[1])]
+    # Resize the image to res
+    img = cv2.resize(img, res)
+    # Create the transformation matrix for resize
+    # Resize only affects [0,0] * [1,1]
+    t_resize = np.zeros((3, 3))
+    t_resize[0, 0] = res[0] / rows
+    t_resize[1, 1] = res[0] / rows
+    t_resize[2, 2] = 1
+
+    # Combine the transformation matrices
+    t_combined = np.zeros((3, 3))
+    t_combined[0:2, 0:3] = t  # Init with rotate, scale and center xform matrix
+
+    t_combined = np.dot(t_combined, t_resize)  # Dot product to combine
+    t_combined = t_combined[0:2, 0:3]
+    return(img, t_combined)
+
+
+
 def get_transform(center, scale, res, rot=0):
     """
     General image processing functions
@@ -102,9 +147,10 @@ def get_transform(center, scale, res, rot=0):
     return t
 
 
-def transform(pt, center, scale, res, invert=0, rot=0):
-    # Transform pixel location to different reference
-    t = get_transform(center, scale, res, rot=rot)
+def transform(pt, center, scale, res, invert=0, rot=0, t=None):
+    """Transform pixel location to different reference."""
+    if t is None:
+        t = get_transform(center, scale, res, rot=rot)
     if invert:
         t = np.linalg.inv(t)
     new_pt = np.array([pt[0] - 1, pt[1] - 1, 1.]).T
