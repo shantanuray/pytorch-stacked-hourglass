@@ -14,7 +14,7 @@ import cv2
 import stacked_hourglass.res
 from stacked_hourglass.utils.imutils import draw_labelmap
 from stacked_hourglass.utils.misc import to_torch
-from stacked_hourglass.utils.transforms import color_normalize, transform, cv2_crop
+from stacked_hourglass.utils.transforms import img_normalize, transform, cv2_crop
 
 # import imgaug.augmenters as iaa
 # from imgaug.augmentables import Keypoint, KeypointsOnImage
@@ -107,7 +107,7 @@ class Generic(data.Dataset):
         # Rotate, scale and crop image
         inp, t = cv2_crop(img, c, s, (self.inp_res, self.inp_res), rot=r)
         # TODO Update color normalize
-        # inp = color_normalize(inp, self.mean, self.std)
+        inp = img_normalize(inp, self.mean, self.std)
 
         # Generate ground truth
         tpts = pts.clone()

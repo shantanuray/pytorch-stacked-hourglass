@@ -16,6 +16,13 @@ def color_normalize(x, mean, std):
     return x
 
 
+def img_normalize(img, mean, std):
+    """Transform the image for torch and normalize."""
+    x = im_to_torch(img)
+    x = color_normalize(x, mean, std)
+    return x
+
+
 def flip_back(flip_output, dataset='mpii'):
     """
     flip output map
