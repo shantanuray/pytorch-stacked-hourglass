@@ -97,7 +97,7 @@ class Generic(data.Dataset):
             # Flip
             if random.random() <= 0.5:
                 img = cv2.flip(img, 1)
-                pts = [[rows - x[0] - 1, x[1]] for x in pts]
+                pts = torch.Tensor([[rows - x[0] - 1, x[1]] for x in pts])
 
             # Color
             img[:, :, 0].mul_(random.uniform(0.8, 1.2)).clamp_(0, 255)
