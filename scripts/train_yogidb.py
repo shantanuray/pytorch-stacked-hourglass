@@ -10,7 +10,7 @@ from torch.optim.adam import Adam
 from torch.utils.data import DataLoader
 
 from stacked_hourglass import hg1, hg2, hg8
-from stacked_hourglass.datasets.Dataset import Dataset
+from stacked_hourglass.datasets.generic import Generic
 from stacked_hourglass.train import do_training_epoch, do_validation_epoch
 from stacked_hourglass.utils.logger import Logger, savefig
 from stacked_hourglass.utils.misc import save_checkpoint, adjust_learning_rate
@@ -77,27 +77,21 @@ def main(args):
                      scale_factor=0, rot_factor=0, label_type='Gaussian',
                      rgb_mean=RGB_MEAN, rgb_stddev=RGB_STDDEV)."""
     annotations_source = 'basic-thresholder'
-    train_dataset = Dataset(image_set=args.image_set_name,
-                            inp_res=args.inp_res,
-                            out_res=args.out_res,
-                            annotations=annotations_source,
-                            is_train=True)
-    train_loader = DataLoader(
-        train_dataset,
-        batch_size=args.train_batch, shuffle=True,
-        num_workers=args.workers, pin_memory=True
-    )
+    dataset = Generic(image_set=args.image_set_name,
+                      inp_res=args.inp_res,
+                      out_res=args.out_res,
+                      annotations=annotations_source)
 
-    val_dataset = Dataset(image_set=args.image_set_name,
-                          inp_res=args.inp_res,
-                          out_res=args.out_res,
-                          annotations=annotations_source,
-                          is_train=False)
-    val_loader = DataLoader(
-        val_dataset,
-        batch_size=args.test_batch, shuffle=False,
-        num_workers=args.workers, pin_memory=True
-    )
+    train_dataset = dataset
+    train_loader = DataLoader(train_dataset,
+                              batch_size=args.train_batch, shuffle=True,
+                              num_workers=args.workers, pin_memory=True)
+
+    val_dataset = dataset
+    val_dataset.is_train = False
+    val_loader = DataLoader(val_dataset,
+                            batch_size=args.test_batch, shuffle=False,
+                            num_workers=args.workers, pin_memory=True)
 
     # train and eval
     lr = args.lr
