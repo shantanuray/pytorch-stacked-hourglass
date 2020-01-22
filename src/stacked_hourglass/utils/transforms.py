@@ -80,9 +80,46 @@ def fliplr(x):
     return x.astype(float)
 
 
+def combine_transformations(t_combined=None, *args):
+    """Combine transformation matrices.
+
+    For each matrix:
+    1. Convert from 2x3 to 3x3 by appending row [[0,0,1]]
+    2. dot product of all matrices
+    3. Return 2x3 matrix of dot product
+
+    Used tail recursion below
+    """
+    if len(args) > 0:
+        args = list(args)
+        heads = args.pop(0)
+        if t_combined is None:
+            t_combined = heads
+        else:
+            t_heads = np.append(heads, [[0, 0, 1]], axis=0)
+            t_combined = np.append(t_combined, [[0, 0, 1]], axis=0)
+            t_combined = np.dot(t_combined, t_heads)
+            t_combined = t_combined[0:2, 0:3]
+        t_combined = combine_transformations(t_combined, *args)
+    return t_combined
+
+
+def cv2_resize(img, res):
+    """Resize and return image as well as transformation matrix."""
+    rows, cols, _ = img.shape
+    # Resize the image to res
+    img = cv2.resize(img, res)
+    # Create the transformation matrix for resize
+    # Resize only affects [0,0] * [1,1]
+    t_resize = np.zeros((2, 3))
+    t_resize[0, 0] = res[0] / rows
+    t_resize[1, 1] = res[1] / cols
+    return img, t_resize
+
+
 def cv2_crop(img, center, scale, res, rot=0):
     """Scale, rotate and crop wrt to objpos using cv2."""
-    rows, cols = img.shape
+    rows, cols, _ = img.shape
     # Get transformation matrix "t"
     # cv2.getRotationMatrix2D rotates and scales wrt center
     t = cv2.getRotationMatrix2D(center, rot, scale)
@@ -106,21 +143,11 @@ def cv2_crop(img, center, scale, res, rot=0):
     img = img[int(crop_x_bounds[0]):int(crop_x_bounds[1]),
               int(crop_y_bounds[0]):int(crop_y_bounds[1])]
     # Resize the image to res
-    img = cv2.resize(img, res)
-    # Create the transformation matrix for resize
-    # Resize only affects [0,0] * [1,1]
-    t_resize = np.zeros((3, 3))
-    t_resize[0, 0] = res[0] / rows
-    t_resize[1, 1] = res[0] / rows
-    t_resize[2, 2] = 1
+    img, t_resize = cv2_resize(img, res)
 
     # Combine the transformation matrices
-    t_combined = np.zeros((3, 3))
-    t_combined[0:2, 0:3] = t  # Init with rotate, scale and center xform matrix
-
-    t_combined = np.dot(t_combined, t_resize)  # Dot product to combine
-    t_combined = t_combined[0:2, 0:3]
-    return(img, t_combined)
+    t_combined = combine_transformations(t, t_resize)
+    return img, t_combined
 
 
 
@@ -154,14 +181,17 @@ def get_transform(center, scale, res, rot=0):
     return t
 
 
-def transform(pt, center, scale, res, invert=0, rot=0, t=None):
+def transform(pt, center=None, scale=None, res=None, invert=0, rot=0, t=None):
     """Transform pixel location to different reference."""
     if t is None:
         t = get_transform(center, scale, res, rot=rot)
-    if invert:
-        t = np.linalg.inv(t)
-    new_pt = np.array([pt[0] - 1, pt[1] - 1, 1.]).T
-    new_pt = np.dot(t, new_pt)
+        if invert:
+            t = np.linalg.inv(t)
+        new_pt = np.array([pt[0] - 1, pt[1] - 1, 1.]).T
+        new_pt = np.dot(t, new_pt)
+    else:
+        new_pt = np.array([pt[0] - 1, pt[1] - 1, 1.]).T
+        new_pt = np.dot(t, new_pt)
     return new_pt[:2].astype(int) + 1
 
 
