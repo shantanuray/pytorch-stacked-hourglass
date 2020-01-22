@@ -14,7 +14,9 @@ import cv2
 import stacked_hourglass.res
 from stacked_hourglass.utils.imutils import draw_labelmap
 from stacked_hourglass.utils.misc import to_torch
-from stacked_hourglass.utils.transforms import img_normalize, transform, cv2_crop
+from stacked_hourglass.utils.transforms import img_normalize
+from stacked_hourglass.utils.transforms import transform, combine_transformations
+from stacked_hourglass.utils.transforms import cv2_resize, cv2_crop
 
 # import imgaug.augmenters as iaa
 # from imgaug.augmentables import Keypoint, KeypointsOnImage
@@ -104,10 +106,14 @@ class Generic(data.Dataset):
             img[:, :, 1].mul_(random.uniform(0.8, 1.2)).clamp_(0, 255)
             img[:, :, 2].mul_(random.uniform(0.8, 1.2)).clamp_(0, 255)
 
-        # Rotate, scale and crop image
-        inp, t = cv2_crop(img, c, s, (self.inp_res, self.inp_res), rot=r)
+        # Rotate, scale and crop image using inp_res
+        img, t_inp = cv2_crop(img, c, s, (self.inp_res, self.inp_res), rot=r)
+        # Get transformation matrix for resizing from inp_res to out_res
+        # No other changes, i.e. new_center is center, no cropping, etc.
+        _, t_resize = cv2_resize(img, (self.inp_res, self.inp_res))
+        t_combined = combine_transformations(t_inp, t_resize)
         # TODO Update color normalize
-        inp = img_normalize(inp, self.mean, self.std)
+        inp = img_normalize(img, self.mean, self.std)
 
         # Generate ground truth
         tpts = pts.clone()
@@ -116,9 +122,13 @@ class Generic(data.Dataset):
 
         for i in range(nparts):
             # if tpts[i, 2] > 0: # This is evil!!
-            if tpts[i, 1] > 0:
-                tpts[i, 0:2] = to_torch(transform(tpts[i, 0:2] + 1, c, s, [self.out_res, self.out_res], rot=r))
-                target[i], vis = draw_labelmap(target[i], tpts[i] - 1, self.sigma, type=self.label_type)
+            # if tpts[i, 1] > 0: # SR: tpts[i, 1] is y-coordinate
+            # "if" should be used on confidence tpts[i, 2]
+            if tpts[i, 2] > 0:
+                tpts[i, 0:2] = to_torch(transform(tpts[i, 0:2], t=t_combined))
+                target[i], vis = draw_labelmap(target[i], tpts[i],
+                                               self.sigma,
+                                               type=self.label_type)
                 target_weight[i, 0] *= vis
 
         # Meta info
