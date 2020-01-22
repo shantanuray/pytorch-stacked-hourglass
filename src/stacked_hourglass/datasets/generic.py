@@ -84,7 +84,7 @@ class Generic(data.Dataset):
         # For pose estimation with a centered/scaled figure
         nparts = pts.size(0)
         img = cv2.imread(img_path, cv2.IMREAD_COLOR)  # HxWxC
-        rows, cols = img.shape
+        rows, cols, colors = img.shape
 
         if self.is_train:
             # Given sf, choose scale from [1-sf, 1+sf]
