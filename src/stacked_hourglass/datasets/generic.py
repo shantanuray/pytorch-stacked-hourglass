@@ -40,7 +40,8 @@ class Generic(data.Dataset):
 
     def __init__(self, image_set, annotations,
                  is_train=True, inp_res=256, out_res=64, sigma=1,
-                 scale_factor=0, rot_factor=0, label_type='Gaussian',
+                 scale_factor=0, rot_factor=0, fliplr=False,
+                 label_type='Gaussian',
                  rgb_mean=RGB_MEAN, rgb_stddev=RGB_STDDEV):
         """Initialize object."""
         self.image_set = image_set  # Image set (array of images)
@@ -51,6 +52,7 @@ class Generic(data.Dataset):
         self.sigma = sigma
         self.scale_factor = scale_factor
         self.rot_factor = rot_factor
+        self.fliplr = fliplr  # Whether to fliplr or not
         self.label_type = label_type
 
         # create train/val split
@@ -97,7 +99,7 @@ class Generic(data.Dataset):
             r = torch.randn(1).mul_(rf).clamp(-rf, rf)[0] if random.random() <= 0.6 else 0
 
             # Flip
-            if random.random() <= 0.5:
+            if self.fliplr and random.random() <= 0.5:
                 img = cv2.flip(img, 1)
                 pts = torch.Tensor([[rows - x[0] - 1, x[1]] for x in pts])
 
@@ -107,6 +109,7 @@ class Generic(data.Dataset):
             img[:, :, 2].mul_(random.uniform(0.8, 1.2)).clamp_(0, 255)
 
         # Rotate, scale and crop image using inp_res
+        # And get transformation matrix
         img, t_inp = cv2_crop(img, c, s, (self.inp_res, self.inp_res), rot=r)
         # Get transformation matrix for resizing from inp_res to out_res
         # No other changes, i.e. new_center is center, no cropping, etc.
