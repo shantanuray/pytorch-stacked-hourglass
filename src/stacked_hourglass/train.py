@@ -7,8 +7,8 @@ from stacked_hourglass.loss import joints_mse_loss
 from stacked_hourglass.utils.evaluation import accuracy, AverageMeter, final_preds
 from stacked_hourglass.utils.transforms import fliplr, flip_back
 
-# A list of joints to include in the accuracy reported as part of the progress bar.
-_ACC_JOINTS = [1, 2, 3, 4, 5, 6, 11, 12, 15, 16]
+# # A list of joints to include in the accuracy reported as part of the progress bar.
+# _ACC_JOINTS = [1, 2, 3, 4, 5, 6, 11, 12, 15, 16]
 
 
 def do_training_step(model, optimiser, input, target, target_weight=None):
@@ -41,7 +41,8 @@ def do_training_epoch(train_loader, model, device, optimiser):
         target_weight = meta['target_weight'].to(device, non_blocking=True)
 
         output, loss = do_training_step(model, optimiser, input, target, target_weight)
-
+        # Get list of joints from the data
+        _ACC_JOINTS = range(meta['tpts'].to(device, non_blocking=True).size(0))
         acc = accuracy(output, target, _ACC_JOINTS)
 
         # measure accuracy and record loss
@@ -99,6 +100,8 @@ def do_validation_epoch(val_loader, model, device, flip=False):
 
         heatmaps, loss = do_validation_step(model, input, target, target_weight, flip)
 
+        # Get list of joints from the data
+        _ACC_JOINTS = range(meta['tpts'].to(device, non_blocking=True).size(0))
         # Calculate PCKh from the predicted heatmaps.
         acc = accuracy(heatmaps, target.cpu(), _ACC_JOINTS)
 
