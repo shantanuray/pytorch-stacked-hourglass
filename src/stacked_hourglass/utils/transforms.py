@@ -187,11 +187,8 @@ def transform(pt, center=None, scale=None, res=None, invert=0, rot=0, t=None):
         t = get_transform(center, scale, res, rot=rot)
         if invert:
             t = np.linalg.inv(t)
-        new_pt = np.array([pt[0] - 1, pt[1] - 1, 1.]).T
-        new_pt = np.dot(t, new_pt)
-    else:
-        new_pt = np.array([pt[0] - 1, pt[1] - 1, 1.]).T
-        new_pt = np.dot(t, new_pt)
+    new_pt = np.array([pt[0] - 1, pt[1] - 1, 1.]).T
+    new_pt = np.dot(t, new_pt)
     return new_pt[:2].astype(int) + 1
 
 
