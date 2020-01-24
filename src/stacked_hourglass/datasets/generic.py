@@ -113,8 +113,9 @@ class Generic(data.Dataset):
         img, t_inp = cv2_crop(img, c, s, (self.inp_res, self.inp_res), rot=r)
         # Get transformation matrix for resizing from inp_res to out_res
         # No other changes, i.e. new_center is center, no cropping, etc.
-        _, t_resize = cv2_resize(img, (self.inp_res, self.inp_res))
-        t_combined = combine_transformations(t_inp, t_resize)
+        # Please note scaling to out_res has to be done before
+        _, t_resize = cv2_resize(img, (self.out_res, self.out_res))
+        t_combined = combine_transformations(t_resize, t_inp)
         # TODO Update color normalize
         inp = img_normalize(img, self.mean, self.std)
 
