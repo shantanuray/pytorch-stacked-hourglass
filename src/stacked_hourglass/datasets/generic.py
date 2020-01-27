@@ -113,6 +113,7 @@ class Generic(data.Dataset):
         t_combined = combine_transformations(t_resize, t_inp)
         # TODO Update color normalize
         inp = img_normalize(img, self.mean, self.std)
+        r = 0
         if self.is_train:
             # Color
             inp[0, :, :].mul_(random.uniform(0.8, 1.2)).clamp_(0, 1)
