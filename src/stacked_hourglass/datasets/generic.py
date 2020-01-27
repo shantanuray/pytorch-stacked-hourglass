@@ -89,7 +89,7 @@ class Generic(data.Dataset):
         nparts = pts.size(0)
         img = cv2.imread(img_path, cv2.IMREAD_COLOR)  # HxWxC
         rows, cols, colors = img.shape
-
+        r = 0
         if self.is_train:
             # Given sf, choose scale from [1-sf, 1+sf]
             # For sf = 0.25, scale is chosen from [0.75, 1.25]
@@ -113,7 +113,6 @@ class Generic(data.Dataset):
         t_combined = combine_transformations(t_resize, t_inp)
         # TODO Update color normalize
         inp = img_normalize(img, self.mean, self.std)
-        r = 0
         if self.is_train:
             # Color
             inp[0, :, :].mul_(random.uniform(0.8, 1.2)).clamp_(0, 1)
