@@ -115,9 +115,9 @@ class Generic(data.Dataset):
         inp = img_normalize(img, self.mean, self.std)
         if self.is_train:
             # Color
-            inp[0, :, :].mul_(random.uniform(0.8, 1.2)).clamp_(0, 255)
-            inp[1, :, :].mul_(random.uniform(0.8, 1.2)).clamp_(0, 255)
-            inp[2, :, :].mul_(random.uniform(0.8, 1.2)).clamp_(0, 255)
+            inp[0, :, :].mul_(random.uniform(0.8, 1.2)).clamp_(0, 1)
+            inp[1, :, :].mul_(random.uniform(0.8, 1.2)).clamp_(0, 1)
+            inp[2, :, :].mul_(random.uniform(0.8, 1.2)).clamp_(0, 1)
 
         # Generate ground truth
         tpts = pts.clone()
