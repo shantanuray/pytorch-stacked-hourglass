@@ -81,7 +81,7 @@ class YogiDB():
                 objpos = [i[3] * i[1], i[4] * i[2]]
                 confidence = 1.0
             annotations.append({"dataset": image_set_name,
-                                "image_paths": i[0],
+                                "img_paths": i[0],
                                 "img_width": i[1],
                                 "img_height": i[2],
                                 "objpos": objpos,
