@@ -9,6 +9,9 @@ from torch.optim.rmsprop import RMSprop
 from torch.optim.adam import Adam
 from torch.utils.data import DataLoader
 
+from yogi import config
+from data_handlers.yogi_db import YogiDB
+from yogi.models import ImageSet
 from stacked_hourglass import hg1, hg2, hg8
 from stacked_hourglass.datasets.generic import Generic
 from stacked_hourglass.train import do_training_epoch, do_validation_epoch
@@ -77,10 +80,17 @@ def main(args):
                      scale_factor=0, rot_factor=0, label_type='Gaussian',
                      rgb_mean=RGB_MEAN, rgb_stddev=RGB_STDDEV)."""
     annotations_source = 'basic-thresholder'
-    dataset = Generic(image_set=args.image_set_name,
+
+    # Get the data from yogi
+    db_obj = YogiDB(config.db_url)
+    imageset = db_obj.get_filtered(ImageSet,
+                                   name=args.image_set_name)
+    annotations = db_obj.get_annotations(annotation_source=annotations_source)
+
+    dataset = Generic(image_set=imageset,
                       inp_res=args.inp_res,
                       out_res=args.out_res,
-                      annotations=annotations_source)
+                      annotations=annotations)
 
     train_dataset = dataset
     train_loader = DataLoader(train_dataset,
@@ -132,10 +142,10 @@ if __name__ == '__main__':
     # Dataset setting
     parser.add_argument('-n', '--image-set-name', default='bigpaw', type=str,
                         help='images set name, (default: bigpaw)')
-    parser.add_argument('-i', '--input-res', default=256, type=int,
+    parser.add_argument('--inp-res', '-i', default=256, type=int,
                         metavar='N',
                         help='resolution of input images (default: 256)')
-    parser.add_argument('-o', '--output-res', default=64, type=int,
+    parser.add_argument('--out-res', '-o', default=64, type=int,
                         metavar='N',
                         help='resolution of output (default: 64)')
 
@@ -154,7 +164,7 @@ if __name__ == '__main__':
                         help='train batchsize')
     parser.add_argument('--test-batch', default=6, type=int, metavar='N',
                         help='test batchsize')
-    parser.add_argument('--z', '--optimizer', default='RMSprop', type=str,
+    parser.add_argument('--optimizer', '--z', default='RMSprop', type=str,
                         metavar='Z', help='optimizer')
     parser.add_argument('--lr', '--learning-rate', default=2.5e-4, type=float,
                         metavar='LR', help='initial learning rate')
