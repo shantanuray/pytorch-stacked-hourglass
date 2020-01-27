@@ -103,11 +103,6 @@ class Generic(data.Dataset):
                 img = cv2.flip(img, 1)
                 pts = torch.Tensor([[rows - x[0] - 1, x[1]] for x in pts])
 
-            # Color
-            img[:, :, 0].mul_(random.uniform(0.8, 1.2)).clamp_(0, 255)
-            img[:, :, 1].mul_(random.uniform(0.8, 1.2)).clamp_(0, 255)
-            img[:, :, 2].mul_(random.uniform(0.8, 1.2)).clamp_(0, 255)
-
         # Rotate, scale and crop image using inp_res
         # And get transformation matrix
         img, t_inp = cv2_crop(img, c, s, (self.inp_res, self.inp_res), rot=r)
@@ -118,6 +113,11 @@ class Generic(data.Dataset):
         t_combined = combine_transformations(t_resize, t_inp)
         # TODO Update color normalize
         inp = img_normalize(img, self.mean, self.std)
+        if self.is_train:
+            # Color
+            inp[0, :, :].mul_(random.uniform(0.8, 1.2)).clamp_(0, 255)
+            inp[1, :, :].mul_(random.uniform(0.8, 1.2)).clamp_(0, 255)
+            inp[2, :, :].mul_(random.uniform(0.8, 1.2)).clamp_(0, 255)
 
         # Generate ground truth
         tpts = pts.clone()
