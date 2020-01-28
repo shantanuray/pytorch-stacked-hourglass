@@ -106,7 +106,19 @@ def do_validation_epoch(val_loader, model, device, flip=False):
         acc = accuracy(heatmaps, target.cpu(), _ACC_JOINTS)
 
         # Calculate locations in original image space from the predicted heatmaps.
-        preds = final_preds(heatmaps, meta['center'], meta['scale'], [64, 64])
+        if 'out_res' in meta and 'inp_res' in meta and 'rot' in meta:
+            preds = final_preds(heatmaps,
+                                meta['center'],
+                                meta['scale'],
+                                [meta['out_res'], meta['out_res']],
+                                [meta['inp_res'], meta['inp_res']],
+                                meta['rot'])
+        else:
+            # Original code
+            preds = final_preds(heatmaps,
+                                meta['center'],
+                                meta['scale'],
+                                [64, 64])
         for example_index, pose in zip(meta['index'], preds):
             predictions[example_index] = pose
 

@@ -136,8 +136,14 @@ class Generic(data.Dataset):
                 target_weight[i, 0] *= vis
 
         # Meta info
-        meta = {'index': index, 'center': c, 'scale': s,
-                'pts': pts, 'tpts': tpts, 'target_weight': target_weight}
+        meta = {'index': index,
+                'center': c,
+                'scale': s,
+                'pts': pts, 'tpts': tpts,
+                'target_weight': target_weight,
+                'inp_res': self.inp_res,
+                'out_res': self.out_res,
+                'rot': r}
 
         return inp, target, meta
 

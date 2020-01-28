@@ -89,13 +89,15 @@ def final_preds_untransformed(output, res):
 
     return coords
 
-def final_preds(output, center, scale, res):
-    coords = final_preds_untransformed(output, res)
+def final_preds(output, center, scale, out_res, inp_res=None, rot=None):
+    coords = final_preds_untransformed(output, out_res)
     preds = coords.clone()
 
     # Transform back
     for i in range(coords.size(0)):
-        preds[i] = transform_preds(coords[i], center[i], scale[i], res)
+        preds[i] = transform_preds(coords[i], center[i],
+                                   scale[i],
+                                   out_res, inp_res, rot)
 
     if preds.dim() < 3:
         preds = preds.unsqueeze(0)

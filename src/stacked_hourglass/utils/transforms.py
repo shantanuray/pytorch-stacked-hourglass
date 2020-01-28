@@ -187,18 +187,50 @@ def transform(pt, center=None, scale=None, res=None, invert=0, rot=0, t=None):
         t = get_transform(center, scale, res, rot=rot)
         if invert:
             t = np.linalg.inv(t)
-    new_pt = np.array([pt[0] - 1, pt[1] - 1, 1.]).T
+    new_pt = np.array([pt[0], pt[1], 1.]).T
     new_pt = np.dot(t, new_pt)
-    return new_pt[:2].astype(int) + 1
+    return new_pt[:2].astype(int)
 
 
-def transform_preds(coords, center, scale, res):
+def transform_preds(coords, center,
+                    scale,
+                    out_res, inp_res,
+                    rot):
+    """Transform predicted coordinates to original image specifications."""
+    # Old code
+    # This was commented by original author
     # size = coords.size()
     # coords = coords.view(-1, coords.size(-1))
     # print(coords.size())
+
+    # Generic dataset does not assume scale_provided wrt 200 px
+    # Code below replaces scale_provided wrt 200 px with inp_res
+    if inp_res is not None:
+        scale = scale * inp_res / 200
     for p in range(coords.size(0)):
-        coords[p, 0:2] = to_torch(transform(coords[p, 0:2], center, scale, res, 1, 0))
+        # TODO: How come no rotation back and why invert?
+
+        coords[p, 0:2] = to_torch(transform(coords[p, 0:2], center,
+                                            scale,
+                                            out_res, 1, 0))
+    # TODO: New code - Switch to using cv2 transformations below
+        # t_rot = cv2.getRotationMatrix2D(tuple(coords), -rot, 1)
+        # t_resize = np.zeros((2, 3))
+        # t_resize[0, 0] = inp_res / out_res
+        # t_resize[1, 1] = inp_res / out_res
+
+        # t_translate = np.diag((1, 1, 1))
+        # t_translate[0, 2] = -inp_res / 2 + int(center[0])
+        # t_translate[1, 2] = -inp_res / 2 + int(center[1])
+        # t_translate = t_translate[0:2, 0:3]
+        # # Resize and "un"-rotate
+        # coords[p, 0:2] = transform(coords[p, 0:2],
+        #                            t=combine_transformations(t_resize, t_rot))
+        # # Translate to original coordinate system
+        # coords[p, 0:2] = transform(coords[p, 0:2],
+        #                            t=t_translate)
     return coords
+
 
 
 def crop(img, center, scale, res, rot=0):
