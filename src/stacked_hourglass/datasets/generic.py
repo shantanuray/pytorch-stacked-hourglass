@@ -60,6 +60,7 @@ class Generic(data.Dataset):
         self.crop = crop
         self.fliplr = fliplr  # Whether to fliplr or not
         self.label_type = label_type
+        self.mode = mode
 
         # create train/val split
 
