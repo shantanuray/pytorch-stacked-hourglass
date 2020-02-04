@@ -12,10 +12,11 @@ from tabulate import tabulate
 import cv2
 
 import stacked_hourglass.res
-from stacked_hourglass.utils.imutils import draw_labelmap
+from stacked_hourglass.utils.imutils import load_image, draw_labelmap
 from stacked_hourglass.utils.misc import to_torch
 from stacked_hourglass.utils.transforms import img_normalize
 from stacked_hourglass.utils.transforms import transform, combine_transformations
+from stacked_hourglass.utils.transforms import shufflelr, crop, color_normalize, fliplr, transform
 from stacked_hourglass.utils.transforms import cv2_resize, cv2_crop
 
 # import imgaug.augmenters as iaa
@@ -31,6 +32,7 @@ from stacked_hourglass.utils.transforms import cv2_resize, cv2_crop
 # ]
 
 
+
 class Generic(data.Dataset):
     """Generic image set."""
 
@@ -40,7 +42,8 @@ class Generic(data.Dataset):
 
     def __init__(self, image_set, annotations,
                  is_train=True, inp_res=256, out_res=64, sigma=1,
-                 scale_factor=0, rot_factor=0, fliplr=False,
+                 crop=False, crop_size=256,
+                 scale_factor=0, rot_factor=0, fliplr=False, crop=False,
                  label_type='Gaussian',
                  rgb_mean=RGB_MEAN, rgb_stddev=RGB_STDDEV):
         """Initialize object."""
@@ -51,7 +54,10 @@ class Generic(data.Dataset):
         self.out_res = out_res
         self.sigma = sigma
         self.scale_factor = scale_factor
+        self.crop = crop
+        self.crop_size = crop_size
         self.rot_factor = rot_factor
+        self.crop = crop
         self.fliplr = fliplr  # Whether to fliplr or not
         self.label_type = label_type
 
@@ -72,13 +78,28 @@ class Generic(data.Dataset):
             a = self.valid_list.iloc[index]
 
         img_path = a['img_paths']
+        # cv2 based image transformations
+        img = cv2.imread(img_path, cv2.IMREAD_COLOR)  # HxWxC
+        rows, cols, colors = img.shape
+        # Joint label positions
         pts = torch.Tensor(a['joint_self'])
         # pts[:, 0:2] -= 1  # Convert pts to zero based
-
         c = tuple(a['objpos'])
+        s = a['scale_provided']
         # In Mpii, scale_provided is the dim of the boundary box wrt 200 px
-        # We do not have a boundary box, so we assume a boundary box of inp_res
-        s = 1
+        # Depending on the flag "crop", we can decide to either:
+        #   True: Crop to crop_size around obj_pos
+        #   False: Keep original res
+        # Then we downsize to inp_res
+        if s == -1:  # Yogi data scale_provided is initialized to -1
+            if self.crop:
+                # If crop, then crop crop_size x crop_size around obj_pos
+                s = self.crop_size / 200
+            else:
+                # If no crop, then use the entire image
+                s = rows / 200
+                # Use the center of the image to rotate
+                c = (int(rows / 2), int(rows / 2))
 
         # # Adjust scale slightly to avoid cropping limbs
         # if c[0] != -1:
@@ -87,8 +108,6 @@ class Generic(data.Dataset):
 
         # For pose estimation with a centered/scaled figure
         nparts = pts.size(0)
-        img = cv2.imread(img_path, cv2.IMREAD_COLOR)  # HxWxC
-        rows, cols, colors = img.shape
         r = 0
         if self.is_train:
             # Given sf, choose scale from [1-sf, 1+sf]
@@ -97,27 +116,51 @@ class Generic(data.Dataset):
             # Given rf, choose scale from [-rf, rf]
             # For sf = 30, scale is chosen from [-30, 30]
             r = torch.randn(1).mul_(rf).clamp(-rf, rf)[0] if random.random() <= 0.6 else 0
+        if self.mode == 'original':
+            img = load_image(img_path)  # CxHxW
+            c = torch.Tensor(a['objpos'])
+            if self.is_train:
+                # Flip
+                if self.fliplr and random.random() <= 0.5:
+                    img = torch.from_numpy(fliplr(img.numpy())).float()
+                    pts = shufflelr(pts, width=img.size(2), dataset='mpii')
+                    c[0] = img.size(2) - c[0]
 
-            # Flip
-            if self.fliplr and random.random() <= 0.5:
-                img = cv2.flip(img, 1)
-                pts = torch.Tensor([[rows - x[0] - 1, x[1]] for x in pts])
+                # Color
+                img[0, :, :].mul_(random.uniform(0.8, 1.2)).clamp_(0, 1)
+                img[1, :, :].mul_(random.uniform(0.8, 1.2)).clamp_(0, 1)
+                img[2, :, :].mul_(random.uniform(0.8, 1.2)).clamp_(0, 1)
+            # Prepare image and groundtruth map
+            inp = crop(img, c, s, [self.inp_res, self.inp_res], rot=r)
+            inp = color_normalize(inp, self.mean, self.std)
+            t = None
+        else:
+            if self.is_train:
+                # Flip
+                if self.fliplr and random.random() <= 0.5:
+                    img = cv2.flip(img, 1)
+                    pts = torch.Tensor([[cols - x[0] - 1, x[1]] for x in pts])
+                # TODO: Shuffle left and right labels
 
-        # Rotate, scale and crop image using inp_res
-        # And get transformation matrix
-        img, t_inp = cv2_crop(img, c, s, (self.inp_res, self.inp_res), rot=r)
-        # Get transformation matrix for resizing from inp_res to out_res
-        # No other changes, i.e. new_center is center, no cropping, etc.
-        # Please note scaling to out_res has to be done before
-        _, t_resize = cv2_resize(img, (self.out_res, self.out_res))
-        t_combined = combine_transformations(t_resize, t_inp)
-        # TODO Update color normalize
-        inp = img_normalize(img, self.mean, self.std)
-        if self.is_train:
-            # Color
-            inp[0, :, :].mul_(random.uniform(0.8, 1.2)).clamp_(0, 1)
-            inp[1, :, :].mul_(random.uniform(0.8, 1.2)).clamp_(0, 1)
-            inp[2, :, :].mul_(random.uniform(0.8, 1.2)).clamp_(0, 1)
+            # Rotate, scale and crop image using inp_res
+            # And get transformation matrix
+            img, t_inp = cv2_crop(img, c, s,
+                                  (self.inp_res, self.inp_res),
+                                  rot=r,
+                                  crop=self.crop,
+                                  crop_size=self.crop_size)
+            # Get transformation matrix for resizing from inp_res to out_res
+            # No other changes, i.e. new_center is center, no cropping, etc.
+            # Please note scaling to out_res has to be done before
+            _, t_resize = cv2_resize(img, (self.out_res, self.out_res))
+            t = combine_transformations(t_resize, t_inp)
+            # TODO Update color normalize
+            inp = img_normalize(img, self.mean, self.std)
+            if self.is_train:
+                # Color
+                inp[0, :, :].mul_(random.uniform(0.8, 1.2)).clamp_(0, 1)
+                inp[1, :, :].mul_(random.uniform(0.8, 1.2)).clamp_(0, 1)
+                inp[2, :, :].mul_(random.uniform(0.8, 1.2)).clamp_(0, 1)
 
         # Generate ground truth
         tpts = pts.clone()
@@ -126,10 +169,11 @@ class Generic(data.Dataset):
 
         for i in range(nparts):
             # if tpts[i, 2] > 0: # This is evil!!
-            # if tpts[i, 1] > 0: # SR: tpts[i, 1] is y-coordinate
-            # "if" should be used on confidence tpts[i, 2]
-            if tpts[i, 2] > 0:
-                tpts[i, 0:2] = to_torch(transform(tpts[i, 0:2], t=t_combined))
+            if tpts[i, 1] > 0:
+                tpts[i, 0:2] = to_torch(transform(tpts[i, 0:2], c, s,
+                                                  [self.out_res, self.out_res],
+                                                  rot=r,
+                                                  t=t))
                 target[i], vis = draw_labelmap(target[i], tpts[i],
                                                self.sigma,
                                                type=self.label_type)
