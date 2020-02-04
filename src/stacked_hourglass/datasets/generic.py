@@ -42,8 +42,8 @@ class Generic(data.Dataset):
 
     def __init__(self, image_set, annotations,
                  is_train=True, inp_res=256, out_res=64, sigma=1,
-                 crop=False, crop_size=256,
-                 scale_factor=0, rot_factor=0, fliplr=False, crop=False,
+                 crop=False, crop_size=512,
+                 scale_factor=0, rot_factor=0, fliplr=False,
                  label_type='Gaussian',
                  rgb_mean=RGB_MEAN, rgb_stddev=RGB_STDDEV):
         """Initialize object."""
