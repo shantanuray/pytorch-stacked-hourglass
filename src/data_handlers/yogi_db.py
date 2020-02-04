@@ -85,7 +85,7 @@ class YogiDB():
                                 "img_width": i[1],
                                 "img_height": i[2],
                                 "objpos": objpos,
-                                "scale_provided": 1.0,
+                                "scale_provided": -1.0,
                                 "joint_self": [[objpos[0],
                                                objpos[1],
                                                confidence]]})
