@@ -117,36 +117,52 @@ def cv2_resize(img, res):
     return img, t_resize
 
 
-def cv2_crop(img, center, scale, res, rot=0):
+def cv2_crop(img, center, scale, res, rot=0, crop=False, crop_size=512):
     """Scale, rotate and crop wrt to objpos using cv2."""
     rows, cols, _ = img.shape
-    # Get transformation matrix "t"
-    # cv2.getRotationMatrix2D rotates and scales wrt center
-    t = cv2.getRotationMatrix2D(center, rot, scale)
-    # Translate the image with center matching with 'center'
-    t[0, 2] += rows / 2 - center[0]
-    t[1, 2] += cols / 2 - center[1]
-    # Rotate the image
-    img = cv2.warpAffine(img, t, (rows, cols))
-    # To include the entire rotated box in the cropped image,
-    # compute a box that will contain the rotated box of size res
-    # For example, to include a 256x256 that has been rotated 30 degrees,
-    # one will need a 349x349 box
-    abs_cos = abs(t[0, 0])
-    abs_sin = abs(t[0, 1])
-    # find the new width and height bounds
-    crop_boundary_w = int(res[0] * abs_sin + res[1] * abs_cos)
-    crop_boundary_h = int(res[0] * abs_cos + res[1] * abs_sin)
-    # Crop image around 'center' bounded by new box bounds
-    crop_x_bounds = torch.Tensor([-1, 1]).mul_(crop_boundary_w / 2).add_(rows / 2).clamp(0, rows)  # Max is size of the image
-    crop_y_bounds = torch.Tensor([-1, 1]).mul_(crop_boundary_h / 2).add_(cols / 2).clamp(0, cols)  # Max is size of the image
-    img = img[int(crop_x_bounds[0]):int(crop_x_bounds[1]),
-              int(crop_y_bounds[0]):int(crop_y_bounds[1])]
-    # Resize the image to res
-    img, t_resize = cv2_resize(img, res)
+    # To keep consistency with original code written for Mpii
+    obj_bbox_size = int(200 * scale)
+    # Scale the image so that a scaled obj_bbox_size fits inside res
+    w = int(cols * res[1] / obj_bbox_size)
+    h = int(rows * res[0] / obj_bbox_size)
+    img, t_bbox_res = cv2_resize(img, (w, h))
+    # Get new shape
+    rows, cols, _ = img.shape
+    # Get new center position
+    center = tuple(transform(torch.tensor(center), t=t_bbox_res))
+    # Rotate around center
+    t = cv2.getRotationMatrix2D(center, rot, 1)
+
+    if crop is True:
+        # Translate the image to the center
+        t[0, 2] += cols / 2 - center[0]
+        t[1, 2] += rows / 2 - center[1]
+        # Actually rotate the image and translate
+        img = cv2.warpAffine(img, t, (rows, cols))
+        # To include the entire rotated box in the cropped image,
+        # compute a box that will contain the rotated box of size res
+        # For example, to include a 256x256 that has been rotated 30 degrees,
+        # one will need a 349x349 box
+        abs_cos = abs(t[0, 0])
+        abs_sin = abs(t[0, 1])
+        # find the new width and height bounds
+        crop_boundary_w = int(res[0] * abs_sin + res[1] * abs_cos)
+        crop_boundary_h = int(res[0] * abs_cos + res[1] * abs_sin)
+        # Crop image around 'center' bounded by new box bounds
+        # Max is size of the image
+        crop_x_bounds = torch.Tensor([-1, 1]).mul_(crop_boundary_w / 2).add_(cols / 2).clamp(0, cols)
+        crop_y_bounds = torch.Tensor([-1, 1]).mul_(crop_boundary_h / 2).add_(rows / 2).clamp(0, rows)
+        img = img[int(crop_x_bounds[0]):int(crop_x_bounds[1]),
+                  int(crop_y_bounds[0]):int(crop_y_bounds[1])]
+        # Resize the image to res
+        img, t_resize = cv2_resize(img, res)
+        t = combine_transformations(t, t_resize)
+    else:
+        # Rotate the image
+        img = cv2.warpAffine(img, t, (rows, cols))
 
     # Combine the transformation matrices
-    t_combined = combine_transformations(t, t_resize)
+    t_combined = combine_transformations(t_bbox_res, t)
     return img, t_combined
 
 
