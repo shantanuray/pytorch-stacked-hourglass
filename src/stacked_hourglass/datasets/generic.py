@@ -44,7 +44,7 @@ class Generic(data.Dataset):
                  is_train=True, inp_res=256, out_res=64, sigma=1,
                  crop=False, crop_size=512,
                  scale_factor=0, rot_factor=0, fliplr=False,
-                 label_type='Gaussian',
+                 label_type='Gaussian', mode='original',
                  rgb_mean=RGB_MEAN, rgb_stddev=RGB_STDDEV):
         """Initialize object."""
         self.image_set = image_set  # Image set (array of images)
