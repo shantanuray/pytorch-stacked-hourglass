@@ -90,7 +90,8 @@ def main(args):
     dataset = Generic(image_set=imageset,
                       inp_res=args.inp_res,
                       out_res=args.out_res,
-                      annotations=annotations)
+                      annotations=annotations,
+                      mode=args.mode)
 
     train_dataset = dataset
     train_loader = DataLoader(train_dataset,
@@ -153,6 +154,9 @@ if __name__ == '__main__':
     parser.add_argument('--arch', '-a', metavar='ARCH', default='hg',
                         choices=['hg1', 'hg2', 'hg8'],
                         help='model architecture')
+    # Code version
+    parser.add_argument('--mode', default='cv2', metavar='mode',
+                        help='use cv2 or original code (default: cv2)')
     # Training strategy
     parser.add_argument('-j', '--workers', default=4, type=int, metavar='N',
                         help='number of data loading workers (default: 4)')
