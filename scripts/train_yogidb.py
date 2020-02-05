@@ -21,6 +21,37 @@ from stacked_hourglass.utils.misc import save_checkpoint, adjust_learning_rate
 
 def main(args):
     """Train/ Cross validate for data source = YogiDB."""
+    # Create data loader
+    """Generic(data.Dataset)(image_set, annotations,
+                     is_train=True, inp_res=256, out_res=64, sigma=1,
+                     scale_factor=0, rot_factor=0, label_type='Gaussian',
+                     rgb_mean=RGB_MEAN, rgb_stddev=RGB_STDDEV)."""
+    annotations_source = 'basic-thresholder'
+
+    # Get the data from yogi
+    db_obj = YogiDB(config.db_url)
+    imageset = db_obj.get_filtered(ImageSet,
+                                   name=args.image_set_name)
+    annotations = db_obj.get_annotations(annotation_source=annotations_source)
+    pts = torch.Tensor(annotations[0]['joint_self'])
+    num_classes = pts.size(0)
+    dataset = Generic(image_set=imageset,
+                      inp_res=args.inp_res,
+                      out_res=args.out_res,
+                      annotations=annotations,
+                      mode=args.mode)
+
+    train_dataset = dataset
+    train_loader = DataLoader(train_dataset,
+                              batch_size=args.train_batch, shuffle=True,
+                              num_workers=args.workers, pin_memory=True)
+
+    val_dataset = dataset
+    val_dataset.is_train = False
+    val_loader = DataLoader(val_dataset,
+                            batch_size=args.test_batch, shuffle=False,
+                            num_workers=args.workers, pin_memory=True)
+
     # Select the hardware device to use for inference.
     if torch.cuda.is_available():
         device = torch.device('cuda', torch.cuda.current_device())
@@ -35,11 +66,11 @@ def main(args):
     os.makedirs(args.checkpoint, exist_ok=True)
 
     if args.arch == 'hg1':
-        model = hg1(pretrained=False)
+        model = hg1(pretrained=False, num_classes=num_classes)
     elif args.arch == 'hg2':
-        model = hg2(pretrained=False)
+        model = hg2(pretrained=False, num_classes=num_classes)
     elif args.arch == 'hg8':
-        model = hg8(pretrained=False)
+        model = hg8(pretrained=False, num_classes=num_classes)
     else:
         raise Exception('unrecognised model architecture: ' + args.model)
 
@@ -73,36 +104,6 @@ def main(args):
     else:
         logger = Logger(os.path.join(args.checkpoint, 'log.txt'), title=title)
         logger.set_names(['Epoch', 'LR', 'Train Loss', 'Val Loss', 'Train Acc', 'Val Acc'])
-
-    # create data loader
-    """Generic(data.Dataset)(image_set, annotations,
-                     is_train=True, inp_res=256, out_res=64, sigma=1,
-                     scale_factor=0, rot_factor=0, label_type='Gaussian',
-                     rgb_mean=RGB_MEAN, rgb_stddev=RGB_STDDEV)."""
-    annotations_source = 'basic-thresholder'
-
-    # Get the data from yogi
-    db_obj = YogiDB(config.db_url)
-    imageset = db_obj.get_filtered(ImageSet,
-                                   name=args.image_set_name)
-    annotations = db_obj.get_annotations(annotation_source=annotations_source)
-
-    dataset = Generic(image_set=imageset,
-                      inp_res=args.inp_res,
-                      out_res=args.out_res,
-                      annotations=annotations,
-                      mode=args.mode)
-
-    train_dataset = dataset
-    train_loader = DataLoader(train_dataset,
-                              batch_size=args.train_batch, shuffle=True,
-                              num_workers=args.workers, pin_memory=True)
-
-    val_dataset = dataset
-    val_dataset.is_train = False
-    val_loader = DataLoader(val_dataset,
-                            batch_size=args.test_batch, shuffle=False,
-                            num_workers=args.workers, pin_memory=True)
 
     # train and eval
     lr = args.lr
