@@ -1,6 +1,7 @@
 """Training for yogi dataset."""
 import argparse
 import os
+import sys
 
 import torch
 import torch.backends.cudnn
@@ -137,6 +138,23 @@ def main(args):
 
 
 if __name__ == '__main__':
+    # Check the hardware device to use for inference.
+    if torch.cuda.is_available():
+        try:
+            cuda_env = os.environ['CUDA_VISIBLE_DEVICES']
+        except KeyError as err:
+            print('GPU environment variable CUDA_VISIBLE_DEVICES not set\n{0}'.format(err))
+            print('Exiting')
+            raise
+        gpu_list = [int(x) for x in cuda_env.split(',')]
+        if len(gpu_list) > 2:
+            print('Warning: You are using more than 2 GPUs. Be Courteous.')
+        print('Using ' + str(len(gpu_list)) + ' GPUs')
+        print('GPUs: {0}'.format(gpu_list))
+    else:
+        print('GPU not available or display driver issue. Exiting')
+        sys.exit()
+
     parser = argparse.ArgumentParser(description='Train a stacked hourglass model.')
     # Data identifier setting
     parser.add_argument('--data-identifier', default='', type=str,
