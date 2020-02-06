@@ -86,7 +86,7 @@ def do_validation_step(model, input, target, target_weight=None, flip=False):
 def do_validation_epoch(val_loader, model, device, flip=False):
     losses = AverageMeter()
     accuracies = AverageMeter()
-    predictions = torch.zeros(len(val_loader.dataset), 16, 2)
+    predictions = torch.zeros(len(val_loader.dataset), 1, 2)
 
     # Put the model in evaluation mode.
     model.eval()
@@ -110,8 +110,8 @@ def do_validation_epoch(val_loader, model, device, flip=False):
             preds = final_preds(heatmaps,
                                 meta['center'],
                                 meta['scale'],
-                                [meta['out_res'], meta['out_res']],
-                                [meta['inp_res'], meta['inp_res']],
+                                [int(meta['out_res'][0][0]), int(meta['out_res'][0][0])],
+                                [int(meta['inp_res'][0][0]), int(meta['inp_res'][0][0])],
                                 meta['rot'])
         else:
             # Original code
