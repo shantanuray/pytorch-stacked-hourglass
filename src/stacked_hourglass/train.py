@@ -58,7 +58,7 @@ def do_training_epoch(train_loader, model, device, optimiser):
     return losses.avg, accuracies.avg
 
 
-def do_validation_step(model, input, target, target_weight=None, flip=False):
+def do_validation_step(model, input, target, target_weight=None, flip=False, device):
     assert not model.training, 'model must be in evaluation mode.'
     assert len(input) == len(target), 'input and target must contain the same number of examples.'
 
@@ -78,7 +78,6 @@ def do_validation_step(model, input, target, target_weight=None, flip=False):
         heatmaps = (output[-1].cpu() + flip_output) / 2
     else:
         heatmaps = output[-1].cpu()
-
 
     return heatmaps, loss.item()
 
@@ -111,7 +110,7 @@ def do_validation_epoch(val_loader, model, device, flip=False):
                                 meta['center'],
                                 meta['scale'],
                                 [int(meta['out_res'][0][0]), int(meta['out_res'][0][0])],
-                                [int(meta['inp_res'][0][0]), int(meta['inp_res'][0][0])],
+                                [int(meta['inp_res'][0][0]), int(meta['out_res'][0][0])],
                                 meta['rot'])
         else:
             # Original code
