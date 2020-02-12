@@ -8,7 +8,7 @@ from stacked_hourglass.utils.evaluation import accuracy, AverageMeter, final_pre
 from stacked_hourglass.utils.transforms import fliplr, flip_back
 
 # # A list of joints to include in the accuracy reported as part of the progress bar.
-# _ACC_JOINTS = [1, 2, 3, 4, 5, 6, 11, 12, 15, 16]
+_ACC_JOINTS = [1]  #, 2, 3, 4, 5, 6, 11, 12, 15, 16]
 
 
 def do_training_step(model, optimiser, input, target, target_weight=None):
@@ -42,7 +42,7 @@ def do_training_epoch(train_loader, model, device, optimiser):
 
         output, loss = do_training_step(model, optimiser, input, target, target_weight)
         # Get list of joints from the data
-        _ACC_JOINTS = range(meta['tpts'].to(device, non_blocking=True).size(0))
+        # _ACC_JOINTS = range(meta['tpts'].to(device, non_blocking=True).size(0))
         acc = accuracy(output, target, _ACC_JOINTS)
 
         # measure accuracy and record loss
@@ -100,7 +100,7 @@ def do_validation_epoch(val_loader, model, device, flip=False):
         heatmaps, loss = do_validation_step(model, input, target, target_weight, flip)
 
         # Get list of joints from the data
-        _ACC_JOINTS = range(meta['tpts'].to(device, non_blocking=True).size(0))
+        # _ACC_JOINTS = range(meta['tpts'].to(device, non_blocking=True).size(0))
         # Calculate PCKh from the predicted heatmaps.
         acc = accuracy(heatmaps, target.cpu(), _ACC_JOINTS)
 
@@ -109,9 +109,14 @@ def do_validation_epoch(val_loader, model, device, flip=False):
             preds = final_preds(heatmaps,
                                 meta['center'],
                                 meta['scale'],
-                                [int(meta['out_res'][0][0]), int(meta['out_res'][0][0])],
-                                [int(meta['inp_res'][0][0]), int(meta['out_res'][0][0])],
-                                meta['rot'])
+                                [64, 64])
+            # TODO
+            # preds = final_preds(heatmaps,
+            #                     meta['center'],
+            #                     meta['scale'],
+            #                     [int(meta['out_res'][0][0]), int(meta['out_res'][0][0])],
+            #                     [int(meta['inp_res'][0][0]), int(meta['out_res'][0][0])],
+            #                     meta['rot'])
         else:
             # Original code
             preds = final_preds(heatmaps,
