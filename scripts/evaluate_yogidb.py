@@ -2,16 +2,19 @@
 import argparse
 import os.path
 import sys
+from datetime import datetime
 
 import torch
 import torch.backends.cudnn
-from torch.nn import DataParallel
 from torch.utils.data import DataLoader
 
 from stacked_hourglass import hg1, hg2, hg8
-from stacked_hourglass.datasets.mpii import print_mpii_validation_accuracy
 from stacked_hourglass.datasets.generic import Generic
 from stacked_hourglass.train import do_validation_epoch
+from stacked_hourglass.utils.logger import Logger
+from stacked_hourglass.utils.misc import to_numpy
+
+import scipy.io
 
 from yogi import config
 from data_handlers.yogi_db import YogiDB
@@ -66,21 +69,29 @@ def main(args):
         raise Exception('unrecognised model architecture: ' + args.model)
     model = model.to(device)
 
-    if not pretrained:
-        assert os.path.isfile(args.model_file)
-        print('Loading model weights from file: {}'.format(args.model_file))
-        checkpoint = torch.load(args.model_file)
-        state_dict = checkpoint['state_dict']
-        if sorted(state_dict.keys())[0].startswith('module.'):
-            model = DataParallel(model)
-        model.load_state_dict(state_dict)
+    # create output dir
+    os.makedirs(args.output_location, exist_ok=True)
+    title = args.image_set_name + ' ' + args.arch
+    filename_pre = title + '_preds_' + datetime.now().strftime("%Y%m%dT%H%M%S")
+    log_filepath = os.path.join(args.output_location, filename_pre + '_log.txt')
+    logger = Logger(log_filepath, title=title)
+    logger.set_names(['Val Loss', 'Val Acc'])
 
     # Generate predictions for the validation set.
-    _, _, predictions = do_validation_epoch(val_loader, model, device, args.flip)
+    valid_loss, valid_acc, predictions = do_validation_epoch(val_loader,
+                                                             model,
+                                                             device,
+                                                             args.flip)
 
-    # Report PCKh for the predictions.
-    print('\nFinal validation PCKh scores:\n')
-    print_mpii_validation_accuracy(predictions)
+    # append logger file
+    logger.append([valid_loss, valid_acc])
+    # TODO: Report PCKh for the predictions.
+    # print('\nFinal validation PCKh scores:\n')
+    # print_mpii_validation_accuracy(predictions)
+
+    predictions = to_numpy(predictions)
+    filepath = os.path.join(args.output_location, filename_pre + '.mat')
+    scipy.io.savemat(filepath, mdict={'preds': predictions})
 
 
 if __name__ == '__main__':
@@ -102,18 +113,25 @@ if __name__ == '__main__':
         sys.exit()
 
     parser = argparse.ArgumentParser(description='Evaluate a stacked hourglass model.')
-    parser.add_argument('-n', '--image-set-name', default='bigpaw', type=str,
+    # Dataset setting
+    parser.add_argument('-n', '--image-set-name', default='bigpaw-clean', type=str,
                         help='images set name, (default: bigpaw)')
+    # Model structure
     parser.add_argument('--arch', metavar='ARCH', default='hg1',
                         choices=['hg1', 'hg2', 'hg8'],
                         help='model architecture')
     parser.add_argument('--model-file', default='', type=str, metavar='PATH',
                         help='path to saved model weights')
+    # Evaluation strategy
     parser.add_argument('--workers', default=4, type=int, metavar='N',
                         help='number of data loading workers')
     parser.add_argument('--batch-size', default=6, type=int, metavar='N',
                         help='batch size')
     parser.add_argument('--flip', dest='flip', action='store_true',
                         help='flip the input during validation')
+    # Miscs
+    parser.add_argument('-o', '--output-location', default='output', type=str,
+                        metavar='PATH',
+                        help='path to save output (default: output)')
 
     main(parser.parse_args())
