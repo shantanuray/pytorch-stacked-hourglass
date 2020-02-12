@@ -58,7 +58,7 @@ def do_training_epoch(train_loader, model, device, optimiser):
     return losses.avg, accuracies.avg
 
 
-def do_validation_step(model, input, target, target_weight=None, flip=False, device):
+def do_validation_step(model, input, target, target_weight=None, flip=False):
     assert not model.training, 'model must be in evaluation mode.'
     assert len(input) == len(target), 'input and target must contain the same number of examples.'
 
@@ -71,7 +71,7 @@ def do_validation_step(model, input, target, target_weight=None, flip=False, dev
         # If `flip` is true, perform horizontally flipped inference as well. This should
         # result in more robust predictions at the expense of additional compute.
         flip_input = fliplr(input.clone().cpu().numpy())
-        flip_input = torch.as_tensor(flip_input, dtype=torch.float32, device=device)
+        flip_input = torch.as_tensor(flip_input, dtype=torch.float32)
         flip_output = model(flip_input)
         flip_output = flip_output[-1].cpu()
         flip_output = flip_back(flip_output)
