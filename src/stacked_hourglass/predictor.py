@@ -118,7 +118,7 @@ class GenericPosePredictor:
         input_tensor = torch.empty((len(raw_images), 3, 256, 256),
                                    device=self.device, dtype=torch.float32)
         for i, raw_image in enumerate(raw_images):
-            input_tensor[i] = self.prepare_image(raw_image)
+            input_tensor[i] = self.prepare_image(raw_image, mean, stddev)
         heatmaps = self.do_forward(input_tensor)[-1].cpu()
         if flip:
             flip_input = fliplr(input_tensor.cpu().clone().numpy())
@@ -131,7 +131,7 @@ class GenericPosePredictor:
         else:
             return heatmaps[0]
 
-    def estimate_joints(self, images, flip=False):
+    def estimate_joints(self, images, mean, stddev, flip=False):
         """Estimate generic joint locations from input images.
 
         Images are expected to be centred on the subject and scaled reasonably.
@@ -147,7 +147,7 @@ class GenericPosePredictor:
         """
         is_batched = _check_batched(images)
         raw_images = images if is_batched else images.unsqueeze(0)
-        heatmaps = self.estimate_heatmaps(raw_images, flip=flip).cpu()
+        heatmaps = self.estimate_heatmaps(raw_images, mean, stddev, flip=flip).cpu()
         coords = final_preds_untransformed(heatmaps, (64, 64))
         # Rescale coords to pixel space of specified images.
         for i, image in enumerate(raw_images):
