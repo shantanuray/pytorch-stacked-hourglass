@@ -112,7 +112,7 @@ class GenericPosePredictor:
         image = color_normalize(image, mean, stddev)
         return image
 
-    def estimate_heatmaps(self, images, flip=False):
+    def estimate_heatmaps(self, images, mean, stddev, flip=False):
         is_batched = _check_batched(images)
         raw_images = images if is_batched else images.unsqueeze(0)
         input_tensor = torch.empty((len(raw_images), 3, 256, 256),
