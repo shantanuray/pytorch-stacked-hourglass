@@ -36,9 +36,9 @@ from stacked_hourglass.utils.transforms import cv2_resize, cv2_crop
 class Generic(data.Dataset):
     """Generic image set."""
 
-    # Using the default RGB mean and std dev used for Mpii
-    RGB_MEAN = torch.as_tensor([0.4404, 0.4440, 0.4327])
-    RGB_STDDEV = torch.as_tensor([0.2458, 0.2410, 0.2468])
+    # Using the default RGB mean and std dev as 0
+    RGB_MEAN = torch.as_tensor([0.0, 0.0, 0.0])
+    RGB_STDDEV = torch.as_tensor([0.0, 0.0, 0.0])
 
     def __init__(self, image_set, annotations,
                  is_train=True, inp_res=256, out_res=64, sigma=1,
@@ -119,12 +119,12 @@ class Generic(data.Dataset):
             r = torch.randn(1).mul_(rf).clamp(-rf, rf)[0] if random.random() <= 0.6 else 0
         if self.mode == 'original':
             img = load_image(img_path)  # CxHxW
-            c = torch.Tensor(a['objpos'])
+            c = torch.Tensor(c)
             if self.is_train:
                 # Flip
                 if self.fliplr and random.random() <= 0.5:
                     img = torch.from_numpy(fliplr(img.numpy())).float()
-                    pts = shufflelr(pts, width=img.size(2), dataset='mpii')
+                    pts = shufflelr(pts, width=img.size(2), dataset='yogi')  # TODO
                     c[0] = img.size(2) - c[0]
 
                 # Color
@@ -171,11 +171,14 @@ class Generic(data.Dataset):
         for i in range(nparts):
             # if tpts[i, 2] > 0: # This is evil!!
             if tpts[i, 1] > 0:
-                tpts[i, 0:2] = to_torch(transform(tpts[i, 0:2], c, s,
+                # Hack: Change later -
+                # The + 1 and -1 wrt tpts is there in the original code
+                # Using int(self.mode == 'original') to do the + 1, -1
+                tpts[i, 0:2] = to_torch(transform(tpts[i, 0:2] + int(self.mode == 'original'), c, s,
                                                   [self.out_res, self.out_res],
                                                   rot=r,
                                                   t=t))
-                target[i], vis = draw_labelmap(target[i], tpts[i],
+                target[i], vis = draw_labelmap(target[i], tpts[i] - int(self.mode == 'original'),
                                                self.sigma,
                                                type=self.label_type)
                 target_weight[i, 0] *= vis
