@@ -33,7 +33,8 @@ def main(args):
     db_obj = YogiDB(config.db_url)
     imageset = db_obj.get_filtered(ImageSet,
                                    name=args.image_set_name)
-    annotations = db_obj.get_annotations(annotation_source=annotations_source)
+    annotations = db_obj.get_annotations(image_set_name=args.image_set_name,
+                                         annotation_source=annotations_source)
     pts = torch.Tensor(annotations[0]['joint_self'])
     num_classes = pts.size(0)
     dataset = Generic(image_set=imageset,
