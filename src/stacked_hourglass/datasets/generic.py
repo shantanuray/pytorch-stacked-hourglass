@@ -100,7 +100,7 @@ class Generic(data.Dataset):
                 # If no crop, then use the entire image
                 s = rows / 200
                 # Use the center of the image to rotate
-                c = (int(rows / 2), int(rows / 2))
+                c = (int(cols / 2), int(rows / 2))
 
         # # Adjust scale slightly to avoid cropping limbs
         # if c[0] != -1:
