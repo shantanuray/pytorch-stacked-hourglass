@@ -96,6 +96,10 @@ class Generic(data.Dataset):
             if self.crop:
                 # If crop, then crop crop_size x crop_size around obj_pos
                 s = self.crop_size / 200
+                # Move enter away from the joint by a random distance < max_dist pixels
+                max_dist = 64
+                c = (int(torch.randn(1).clamp(-1, 1).mul(max_dist).add(c[0]).clamp(0, cols - 1)),
+                     int(torch.randn(1).clamp(-1, 1).mul(max_dist).add(c[1]).clamp(0, rows - 1)))
             else:
                 # If no crop, then use the entire image
                 s = rows / 200
