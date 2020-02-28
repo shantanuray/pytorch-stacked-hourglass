@@ -37,13 +37,27 @@ def main(args):
                                          annotation_source=annotations_source)
     pts = torch.Tensor(annotations[0]['joint_self'])
     num_classes = pts.size(0)
+    crop_size = 512
+    if args.crop:
+        crop_size = args.crop
+        crop = True
+    else:
+        crop = False
+
+    # Using the default RGB mean and std dev as 0
+    RGB_MEAN = torch.as_tensor([0.0, 0.0, 0.0])
+    RGB_STDDEV = torch.as_tensor([0.0, 0.0, 0.0])
+
     dataset = Generic(image_set=imageset,
                       inp_res=args.inp_res,
                       out_res=args.out_res,
                       annotations=annotations,
-                      mode=args.mode)
+                      mode=args.mode,
+                      crop=crop, crop_size=crop_size,
+                      rgb_mean=RGB_MEAN, rgb_stddev=RGB_STDDEV)
 
     train_dataset = dataset
+    train_dataset.is_train = True
     train_loader = DataLoader(train_dataset,
                               batch_size=args.train_batch, shuffle=True,
                               num_workers=args.workers, pin_memory=True)
@@ -169,6 +183,9 @@ if __name__ == '__main__':
     parser.add_argument('--out-res', '-o', default=64, type=int,
                         metavar='N',
                         help='resolution of output (default: 64)')
+    parser.add_argument('--crop', default=0, type=int,
+                        metavar='N',
+                        help='crop size of input image (default: 0 => No cropping)')
 
     # Model structure
     parser.add_argument('--arch', '-a', metavar='ARCH', default='hg',
