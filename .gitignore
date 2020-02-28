@@ -105,3 +105,7 @@ ENV/
 
 # Rope project settings
 .ropeproject
+
+# Temp
+tmp*
+TODO
