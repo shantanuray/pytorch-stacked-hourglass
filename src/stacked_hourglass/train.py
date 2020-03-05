@@ -2,6 +2,7 @@ import torch
 import torch.backends.cudnn
 import torch.nn.parallel
 from tqdm import tqdm
+import pandas as pd
 
 from stacked_hourglass.loss import joints_mse_loss
 from stacked_hourglass.utils.evaluation import accuracy, AverageMeter, final_preds
@@ -82,7 +83,8 @@ def do_validation_step(model, input, target, target_weight=None, flip=False):
     return heatmaps, loss.item()
 
 
-def do_validation_epoch(val_loader, model, device, flip=False):
+def do_validation_epoch(val_loader, model, device, flip=False,
+                        debug=False, debug_file=None, epoch=None):
     losses = AverageMeter()
     accuracies = AverageMeter()
     predictions = torch.zeros(len(val_loader.dataset), 1, 2)
@@ -106,10 +108,11 @@ def do_validation_epoch(val_loader, model, device, flip=False):
 
         # Calculate locations in original image space from the predicted heatmaps.
         if 'out_res' in meta and 'inp_res' in meta and 'rot' in meta:
-            preds = final_preds(heatmaps,
-                                meta['center'],
-                                meta['scale'],
-                                [64, 64])
+            preds, coords = final_preds(heatmaps,
+                                        meta['center'],
+                                        meta['scale'],
+                                        [meta['out_res'].data.cpu().numpy()[0],
+                                         meta['out_res'].data.cpu().numpy()[0]])
             # TODO
             # preds = final_preds(heatmaps,
             #                     meta['center'],
@@ -119,10 +122,35 @@ def do_validation_epoch(val_loader, model, device, flip=False):
             #                     meta['rot'])
         else:
             # Original code
-            preds = final_preds(heatmaps,
-                                meta['center'],
-                                meta['scale'],
-                                [64, 64])
+            preds, coords = final_preds(heatmaps,
+                                        meta['center'],
+                                        meta['scale'],
+                                        [64, 64])
+        validation_log = pd.DataFrame()
+        if debug:
+            pts_df = pd.DataFrame(meta['pts'].data.cpu().numpy().squeeze(axis=1),
+                                  columns=['orig_ref_x', 'orig_ref_y', 'orig_prob'])
+            tpts_df = pd.DataFrame(meta['tpts'].data.cpu().numpy().squeeze(axis=1),
+                                   columns=['xform_ref_x', 'orig_ref_y', 'orig_prob'])
+            coords_df = pd.DataFrame(coords.data.cpu().numpy().squeeze(axis=1),
+                                     columns=['xform_pred_x', 'xform_pred_y'])
+            preds_df = pd.DataFrame(preds.data.cpu().numpy().squeeze(axis=1),
+                                    columns=['pred_x', 'pred_y'])
+            epoch_df = pd.DataFrame([epoch + 1] * len(pts_df), columns=['epoch'])
+            img_df = pd.DataFrame(meta['img_paths'].data.cpu().str(),
+                                  columns=['img_paths'])
+            validation_log = pd.concat([epoch_df,
+                                       img_df,
+                                       pts_df,
+                                       tpts_df,
+                                       coords_df,
+                                       preds_df], axis=1)
+            if epoch == 0:
+                validation_log.to_csv(debug_file)
+            else:
+                validation_log.to_csv(debug_file,
+                                      mode='a',
+                                      header=False)
         for example_index, pose in zip(meta['index'], preds):
             predictions[example_index] = pose
 
@@ -136,4 +164,4 @@ def do_validation_epoch(val_loader, model, device, flip=False):
             acc=accuracies.avg
         ))
 
-    return losses.avg, accuracies.avg, predictions
+    return losses.avg, accuracies.avg, predictions, validation_log

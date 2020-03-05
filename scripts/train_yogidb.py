@@ -131,7 +131,10 @@ def main(args):
         train_loss, train_acc = do_training_epoch(train_loader, model, device, optimizer)
 
         # evaluate on validation set
-        valid_loss, valid_acc, predictions = do_validation_epoch(val_loader, model, device, False)
+        if args.debug == 1:
+            valid_loss, valid_acc, predictions, validation_log = do_validation_epoch(val_loader, model, device, False, True, os.join(args.checkpoint, 'debug.csv'), epoch + 1)
+        else:
+            valid_loss, valid_acc, predictions, _ = do_validation_epoch(val_loader, model, device, False)
 
         # append logger file
         logger.append([epoch + 1, lr, train_loss, valid_loss, train_acc, valid_acc])
@@ -226,5 +229,7 @@ if __name__ == '__main__':
                         '(default: 0)')
     parser.add_argument('--resume', default='', type=str, metavar='PATH',
                         help='path to latest checkpoint (default: none)')
+    parser.add_argument('--debug', default='0', type=int,
+                        help='debug mode (0,1) (default: 0)')
 
     main(parser.parse_args())

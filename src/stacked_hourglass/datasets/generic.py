@@ -64,8 +64,8 @@ class Generic(data.Dataset):
 
         # create train/val split
 
-        self.train_list, self.valid_list = train_test_split(self.anno,
-                                                            test_size=0.2)
+        self.train_list = self.anno[0:int(len(self.anno) * 0.8)]
+        self.valid_list = self.anno[int(len(self.anno) * 0.8) + 1:]
         self.mean = rgb_mean
         self.std = rgb_stddev
 
@@ -195,7 +195,8 @@ class Generic(data.Dataset):
                 'target_weight': target_weight,
                 'inp_res': self.inp_res,
                 'out_res': self.out_res,
-                'rot': r}
+                'rot': r,
+                'img_paths': img_path}
 
         return inp, target, meta
 

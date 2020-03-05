@@ -102,7 +102,7 @@ def final_preds(output, center, scale, out_res, inp_res=None, rot=None):
     if preds.dim() < 3:
         preds = preds.unsqueeze(0)
 
-    return preds
+    return preds, coords
 
 
 class AverageMeter(object):
