@@ -132,7 +132,7 @@ def main(args):
 
         # evaluate on validation set
         if args.debug == 1:
-            valid_loss, valid_acc, predictions, validation_log = do_validation_epoch(val_loader, model, device, False, True, os.join(args.checkpoint, 'debug.csv'), epoch + 1)
+            valid_loss, valid_acc, predictions, validation_log = do_validation_epoch(val_loader, model, device, False, True, os.path.join(args.checkpoint, 'debug.csv'), epoch + 1)
         else:
             valid_loss, valid_acc, predictions, _ = do_validation_epoch(val_loader, model, device, False)
 
