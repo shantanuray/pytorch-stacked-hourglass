@@ -89,8 +89,7 @@ def final_preds_untransformed(output, res):
 
     return coords
 
-def final_preds(output, center, scale, out_res, inp_res=None, rot=None):
-    coords = final_preds_untransformed(output, out_res)
+def final_preds(coords, center, scale, out_res, inp_res=None, rot=None):
     preds = coords.clone()
 
     # Transform back
@@ -102,7 +101,7 @@ def final_preds(output, center, scale, out_res, inp_res=None, rot=None):
     if preds.dim() < 3:
         preds = preds.unsqueeze(0)
 
-    return preds, coords
+    return preds
 
 
 class AverageMeter(object):
