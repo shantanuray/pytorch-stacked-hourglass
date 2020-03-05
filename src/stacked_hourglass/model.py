@@ -105,8 +105,8 @@ class HourglassNet(nn.Module):
     def __init__(self, block, num_stacks=2, num_blocks=4, num_classes=16):
         super(HourglassNet, self).__init__()
 
-        self.inplanes = 64
-        self.num_feats = 128
+        self.inplanes = 256
+        self.num_feats = 512
         self.num_stacks = num_stacks
         self.conv1 = nn.Conv2d(3, self.inplanes, kernel_size=7, stride=2, padding=3,
                                bias=True)

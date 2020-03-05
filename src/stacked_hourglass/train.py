@@ -109,7 +109,7 @@ def do_validation_epoch(val_loader, model, device, flip=False):
             preds = final_preds(heatmaps,
                                 meta['center'],
                                 meta['scale'],
-                                [64, 64])
+                                [256, 256])
             # TODO
             # preds = final_preds(heatmaps,
             #                     meta['center'],
@@ -122,7 +122,7 @@ def do_validation_epoch(val_loader, model, device, flip=False):
             preds = final_preds(heatmaps,
                                 meta['center'],
                                 meta['scale'],
-                                [64, 64])
+                                [256, 256])
         for example_index, pose in zip(meta['index'], preds):
             predictions[example_index] = pose
 
