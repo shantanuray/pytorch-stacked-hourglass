@@ -5,7 +5,7 @@ from tqdm import tqdm
 import pandas as pd
 
 from stacked_hourglass.loss import joints_mse_loss
-from stacked_hourglass.utils.evaluation import accuracy, AverageMeter, final_preds
+from stacked_hourglass.utils.evaluation import accuracy, AverageMeter, final_preds, final_preds_untransformed
 from stacked_hourglass.utils.transforms import fliplr, flip_back
 
 # # A list of joints to include in the accuracy reported as part of the progress bar.
@@ -107,25 +107,21 @@ def do_validation_epoch(val_loader, model, device, flip=False,
         acc = accuracy(heatmaps, target.cpu(), _ACC_JOINTS)
 
         # Calculate locations in original image space from the predicted heatmaps.
+        out_res = [meta['out_res'].data.cpu().numpy()[0],
+                   meta['out_res'].data.cpu().numpy()[0]]
         if 'out_res' in meta and 'inp_res' in meta and 'rot' in meta:
-            preds, coords = final_preds(heatmaps,
-                                        meta['center'],
-                                        meta['scale'],
-                                        [meta['out_res'].data.cpu().numpy()[0],
-                                         meta['out_res'].data.cpu().numpy()[0]])
-            # TODO
-            # preds = final_preds(heatmaps,
-            #                     meta['center'],
-            #                     meta['scale'],
-            #                     [int(meta['out_res'][0][0]), int(meta['out_res'][0][0])],
-            #                     [int(meta['inp_res'][0][0]), int(meta['out_res'][0][0])],
-            #                     meta['rot'])
+            coords = final_preds_untransformed(heatmaps, out_res)
+            preds = final_preds(coords,
+                                meta['center'],
+                                meta['scale'],
+                                out_res)
         else:
             # Original code
-            preds, coords = final_preds(heatmaps,
-                                        meta['center'],
-                                        meta['scale'],
-                                        [64, 64])
+            coords = final_preds_untransformed(heatmaps, out_res)
+            preds = final_preds(coords,
+                                meta['center'],
+                                meta['scale'],
+                                [64, 64])
         validation_log = pd.DataFrame()
         if debug:
             pts_df = pd.DataFrame(meta['pts'].data.cpu().numpy().squeeze(axis=1),
@@ -137,8 +133,7 @@ def do_validation_epoch(val_loader, model, device, flip=False,
             preds_df = pd.DataFrame(preds.data.cpu().numpy().squeeze(axis=1),
                                     columns=['pred_x', 'pred_y'])
             epoch_df = pd.DataFrame([epoch + 1] * len(pts_df), columns=['epoch'])
-            img_df = pd.DataFrame(meta['img_paths'].data.cpu().str(),
-                                  columns=['img_paths'])
+            img_df = pd.DataFrame(meta['img_paths'], columns=['img_paths'])
             validation_log = pd.concat([epoch_df,
                                        img_df,
                                        pts_df,
