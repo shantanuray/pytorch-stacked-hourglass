@@ -140,12 +140,7 @@ def do_validation_epoch(val_loader, model, device, flip=False,
                                        tpts_df,
                                        coords_df,
                                        preds_df], axis=1)
-            if epoch == 0:
-                validation_log.to_csv(debug_file)
-            else:
-                validation_log.to_csv(debug_file,
-                                      mode='a',
-                                      header=False)
+            validation_log.to_csv(debug_file, mode='a', header=False)
         for example_index, pose in zip(meta['index'], preds):
             predictions[example_index] = pose
 
