@@ -107,15 +107,15 @@ class GenericPosePredictor:
         image = torch.empty(image.shape, device='cpu', dtype=torch.float32).copy_(image)
         if was_fixed_point:
             image /= 255.0
-        if image.shape[-2:] != (1024, 1024):
-            image = resize(image, 1024, 1024)
+        if image.shape[-2:] != (256, 256):
+            image = resize(image, 256, 256)
         image = color_normalize(image, mean, stddev)
         return image
 
     def estimate_heatmaps(self, images, mean, stddev, flip=False):
         is_batched = _check_batched(images)
         raw_images = images if is_batched else images.unsqueeze(0)
-        input_tensor = torch.empty((len(raw_images), 3, 1024, 1024),
+        input_tensor = torch.empty((len(raw_images), 3, 256, 256),
                                    device=self.device, dtype=torch.float32)
         for i, raw_image in enumerate(raw_images):
             input_tensor[i] = self.prepare_image(raw_image, mean, stddev)
