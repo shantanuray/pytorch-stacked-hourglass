@@ -132,9 +132,9 @@ class Generic(data.Dataset):
                     c[0] = img.size(2) - c[0]
 
                 # Color
-                img[0, :, :].mul_(random.uniform(0.8, 1.2)).clamp_(0, 1)
-                img[1, :, :].mul_(random.uniform(0.8, 1.2)).clamp_(0, 1)
-                img[2, :, :].mul_(random.uniform(0.8, 1.2)).clamp_(0, 1)
+                # img[0, :, :].mul_(random.uniform(0.8, 1.2)).clamp_(0, 1)
+                # img[1, :, :].mul_(random.uniform(0.8, 1.2)).clamp_(0, 1)
+                # img[2, :, :].mul_(random.uniform(0.8, 1.2)).clamp_(0, 1)
             # Prepare image and groundtruth map
             inp = crop(img, c, s, [self.inp_res, self.inp_res], rot=r)
             inp = color_normalize(inp, self.mean, self.std)
