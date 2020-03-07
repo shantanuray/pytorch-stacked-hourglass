@@ -161,11 +161,11 @@ class Generic(data.Dataset):
             t = combine_transformations(t_resize, t_inp)
             # TODO Update color normalize
             inp = img_normalize(img, self.mean, self.std)
-            if self.is_train:
-                # Color
-                inp[0, :, :].mul_(random.uniform(0.8, 1.2)).clamp_(0, 1)
-                inp[1, :, :].mul_(random.uniform(0.8, 1.2)).clamp_(0, 1)
-                inp[2, :, :].mul_(random.uniform(0.8, 1.2)).clamp_(0, 1)
+            # if self.is_train:
+            #     # Color
+            #     inp[0, :, :].mul_(random.uniform(0.8, 1.2)).clamp_(0, 1)
+            #     inp[1, :, :].mul_(random.uniform(0.8, 1.2)).clamp_(0, 1)
+            #     inp[2, :, :].mul_(random.uniform(0.8, 1.2)).clamp_(0, 1)
 
         # Generate ground truth
         tpts = pts.clone()
@@ -173,8 +173,7 @@ class Generic(data.Dataset):
         target_weight = tpts[:, 2].clone().view(nparts, 1)
 
         for i in range(nparts):
-            # if tpts[i, 2] > 0: # This is evil!!
-            if tpts[i, 1] > 0:
+            if tpts[i, 2] > 0:  # This is evil!! # if tpts[i, 1] > 0:
                 # Hack: Change later -
                 # The + 1 and -1 wrt tpts is there in the original code
                 # Using int(self.mode == 'original') to do the + 1, -1
