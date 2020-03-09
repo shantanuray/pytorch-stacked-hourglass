@@ -132,7 +132,7 @@ def do_validation_epoch(val_loader, model, device, flip=False,
                                      columns=['xform_pred_x', 'xform_pred_y'])
             preds_df = pd.DataFrame(preds.data.cpu().numpy().squeeze(axis=1),
                                     columns=['pred_x', 'pred_y'])
-            epoch_df = pd.DataFrame([epoch + 1] * len(pts_df), columns=['epoch'])
+            epoch_df = pd.DataFrame([epoch] * len(pts_df), columns=['epoch'])
             img_df = pd.DataFrame(meta['img_paths'], columns=['img_paths'])
             validation_log = pd.concat([epoch_df,
                                        img_df,
