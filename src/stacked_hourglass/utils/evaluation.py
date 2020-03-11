@@ -89,7 +89,7 @@ def final_preds_untransformed(output, res):
 
     return coords
 
-def final_preds(coords, center, scale, out_res, inp_res=None, rot=None):
+def final_preds(heatmaps, center, scale, out_res, inp_res=None, rot=None):
     coords = final_preds_untransformed(heatmaps, out_res)
     preds = coords.clone()
     """Transform back."""
