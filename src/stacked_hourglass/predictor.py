@@ -148,11 +148,11 @@ class GenericPosePredictor:
         is_batched = _check_batched(images)
         raw_images = images if is_batched else images.unsqueeze(0)
         heatmaps = self.estimate_heatmaps(raw_images, mean, stddev, flip=flip).cpu()
-        coords = final_preds_untransformed(heatmaps, (256, 256))
+        coords = final_preds_untransformed(heatmaps, (64, 64))
         # Rescale coords to pixel space of specified images.
         for i, image in enumerate(raw_images):
-            coords[i, :, 0] *= image.shape[-1] / 256
-            coords[i, :, 1] *= image.shape[-2] / 256
+            coords[i, :, 0] *= image.shape[-1] / 64
+            coords[i, :, 1] *= image.shape[-2] / 64
         if is_batched:
             return coords
         else:
