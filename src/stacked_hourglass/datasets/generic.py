@@ -175,12 +175,12 @@ class Generic(data.Dataset):
             if tpts[i, 2] > 0:  # This is evil!! # if tpts[i, 1] > 0:
                 # Hack: Change later -
                 # The + 1 and -1 wrt tpts is there in the original code
-                # Using int(self.mode == 'original') to do the + 1, -1
-                tpts[i, 0:2] = to_torch(transform(tpts[i, 0:2] + int(self.mode == 'original'), c, s,
+                # Removed int(self.mode == 'original') to do the + 1, -1
+                tpts[i, 0:2] = to_torch(transform(tpts[i, 0:2], c, s,
                                                   [self.out_res, self.out_res],
                                                   rot=r,
                                                   t=t))
-                target[i], vis = draw_labelmap(target[i], tpts[i] - int(self.mode == 'original'),
+                target[i], vis = draw_labelmap(target[i], tpts[i],
                                                self.sigma,
                                                type=self.label_type)
                 target_weight[i, 0] *= vis
