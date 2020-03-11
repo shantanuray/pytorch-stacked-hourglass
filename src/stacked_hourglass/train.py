@@ -110,18 +110,17 @@ def do_validation_epoch(val_loader, model, device, flip=False,
         out_res = [meta['out_res'].data.cpu().numpy()[0],
                    meta['out_res'].data.cpu().numpy()[0]]
         if 'out_res' in meta and 'inp_res' in meta and 'rot' in meta:
-            coords = final_preds_untransformed(heatmaps, out_res)
-            preds = final_preds(coords,
-                                meta['center'],
-                                meta['scale'],
-                                out_res)
+            preds, coords = final_preds(heatmaps,
+                                        meta['center'],
+                                        meta['scale'],
+                                        out_res)
         else:
             # Original code
-            coords = final_preds_untransformed(heatmaps, out_res)
-            preds = final_preds(coords,
-                                meta['center'],
-                                meta['scale'],
-                                [64, 64])
+            # coords = final_preds_untransformed(heatmaps, out_res)
+            preds, coords = final_preds(heatmaps,
+                                        meta['center'],
+                                        meta['scale'],
+                                        [64, 64])
         validation_log = pd.DataFrame()
         if debug:
             pts_df = pd.DataFrame(meta['pts'].data.cpu().numpy().squeeze(axis=1),

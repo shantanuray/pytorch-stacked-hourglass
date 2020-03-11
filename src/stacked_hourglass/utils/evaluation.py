@@ -90,16 +90,18 @@ def final_preds_untransformed(output, res):
     return coords
 
 def final_preds(coords, center, scale, out_res, inp_res=None, rot=None):
+    coords = final_preds_untransformed(heatmaps, out_res)
+    preds = coords.clone()
     """Transform back."""
     for i in range(coords.size(0)):
-        coords[i] = transform_preds(coords[i], center[i],
-                                    scale[i],
-                                    out_res, inp_res, rot)
+        preds[i] = transform_preds(preds[i], center[i],
+                                   scale[i],
+                                   out_res, inp_res, rot)
 
-    if coords.dim() < 3:
-        coords = coords.unsqueeze(0)
+    if preds.dim() < 3:
+        preds = preds.unsqueeze(0)
 
-    return coords
+    return preds, coords
 
 
 class AverageMeter(object):
