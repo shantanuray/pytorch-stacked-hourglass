@@ -123,6 +123,10 @@ def do_validation_epoch(val_loader, model, device, flip=False,
                                         [64, 64])
         validation_log = pd.DataFrame()
         if debug:
+            center_df = pd.DataFrame(meta['center'].data.cpu().numpy(),
+                                     columns=['center_x', 'center_y'])
+            scale_df = pd.DataFrame(meta['scale'].data.cpu().numpy(),
+                                    columns=['scale'])
             pts_df = pd.DataFrame(meta['pts'].data.cpu().numpy().squeeze(axis=1),
                                   columns=['orig_ref_x', 'orig_ref_y', 'orig_prob'])
             tpts_df = pd.DataFrame(meta['tpts'].data.cpu().numpy().squeeze(axis=1),
@@ -134,6 +138,8 @@ def do_validation_epoch(val_loader, model, device, flip=False,
             epoch_df = pd.DataFrame([epoch] * len(pts_df), columns=['epoch'])
             img_df = pd.DataFrame(meta['img_paths'], columns=['img_paths'])
             validation_log = pd.concat([epoch_df,
+                                       center_df,
+                                       scale_df,
                                        img_df,
                                        pts_df,
                                        tpts_df,
