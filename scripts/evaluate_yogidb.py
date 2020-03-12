@@ -53,12 +53,6 @@ def main(args):
                       crop=crop, crop_size=crop_size,
                       rgb_mean=RGB_MEAN, rgb_stddev=RGB_STDDEV)
 
-    train_dataset = dataset
-    train_dataset.is_train = True
-    train_loader = DataLoader(train_dataset,
-                              batch_size=args.train_batch, shuffle=True,
-                              num_workers=args.workers, pin_memory=True)
-
     val_dataset = dataset
     val_dataset.is_train = False
     val_loader = DataLoader(val_dataset,
