@@ -92,6 +92,7 @@ def main(args):
     model.load_state_dict(checkpoint['state_dict'])
     print("=> loaded model from '{}' ".format(args.checkpoint))
     logger = Logger(os.path.join(args.debug_loc, 'log.txt'), title=title)
+    logger.set_names(['Epoch', 'Val Loss', 'Val Acc'])
 
     # eval
     for epoch in range(args.start_epoch, args.epochs):
