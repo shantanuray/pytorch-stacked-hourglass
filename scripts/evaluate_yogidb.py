@@ -16,6 +16,8 @@ from stacked_hourglass.datasets.generic import Generic
 from stacked_hourglass.train import do_validation_epoch
 from stacked_hourglass.utils.logger import Logger
 
+from datetime import datetime
+
 
 def main(args):
     """Train/ Cross validate for data source = YogiDB."""
@@ -84,7 +86,12 @@ def main(args):
     model = DataParallel(model).to(device)
 
     # Load model from a debug_loc
-    title = args.data_identifier + ' ' + args.arch
+    title = ' '.join(['evaluate',
+                     args.data_identifier,
+                     args.arch,
+                     args.image_set_name,
+                     "{0:%F}".format(datetime.now())])
+
     assert os.path.isfile(args.checkpoint)
     print("=> loading model from '{}'".format(args.checkpoint))
     checkpoint = torch.load(args.checkpoint)
@@ -97,9 +104,9 @@ def main(args):
     # eval
     for epoch in range(args.start_epoch, args.epochs):
         # evaluate on validation set
-        valid_loss, valid_acc, predictions, validation_log = do_validation_epoch(val_loader, model, device, False, True, os.path.join(args.debug_loc, 'debug.csv'), epoch + 1)
+        valid_loss, valid_acc, predictions, validation_log = do_validation_epoch(val_loader, model, device, False, True, os.path.join(args.debug_loc, title + '.csv'), epoch)
         # append logger file
-        logger.append([epoch + 1, valid_loss, valid_acc])
+        logger.append([epoch, valid_loss, valid_acc])
 
     logger.close()
 
