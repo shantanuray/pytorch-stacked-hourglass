@@ -86,7 +86,7 @@ def main(args):
     model = DataParallel(model).to(device)
 
     # Load model from a debug_loc
-    title = ' '.join(['evaluate',
+    title = '_'.join(['evaluate',
                      args.data_identifier,
                      args.arch,
                      args.image_set_name,
