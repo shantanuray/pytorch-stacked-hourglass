@@ -87,9 +87,9 @@ def main(args):
 
     # Load model from a debug_loc
     title = '_'.join(['evaluate',
-                     args.data_identifier,
                      args.arch,
-                     args.image_set_name,
+                     'train', args.training_data,
+                     'eval', args.image_set_name,
                      "{0:%F}".format(datetime.now())])
 
     assert os.path.isfile(args.checkpoint)
@@ -150,6 +150,8 @@ if __name__ == '__main__':
     parser.add_argument('--arch', '-a', metavar='ARCH', default='hg',
                         choices=['hg1', 'hg2', 'hg8'],
                         help='model architecture')
+    parser.add_argument('--training-data', metavar='ARCH', default='',
+                        help='training-data imageset name')
     # Code version
     parser.add_argument('--mode', default='cv2', metavar='mode',
                         help='use cv2 or original code (default: cv2)')
