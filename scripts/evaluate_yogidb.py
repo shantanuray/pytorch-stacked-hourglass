@@ -86,12 +86,11 @@ def main(args):
     model = DataParallel(model).to(device)
 
     # Load model from a debug_loc
-    title = '_'.join(['evaluate',
-                     args.arch,
+    title = '_'.join([args.arch,
                      'train', args.training_data,
                      'eval', args.image_set_name,
-                     'crop', args.crop,
-                     "{0:%F}".format(datetime.now())])
+                     'crop', str(args.crop),
+                     '{0:%F}'.format(datetime.now())])
 
     assert os.path.isfile(args.checkpoint)
     print("=> loading model from '{}'".format(args.checkpoint))
