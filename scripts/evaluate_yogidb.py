@@ -90,6 +90,7 @@ def main(args):
                      args.arch,
                      'train', args.training_data,
                      'eval', args.image_set_name,
+                     'crop', args.crop,
                      "{0:%F}".format(datetime.now())])
 
     assert os.path.isfile(args.checkpoint)
