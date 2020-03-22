@@ -53,6 +53,8 @@ def main(args):
                       annotations=annotations,
                       mode=args.mode,
                       crop=crop, crop_size=crop_size,
+                      train_test_split=args.train_test_split,
+                      train_ratio=args.train_ratio,
                       rgb_mean=RGB_MEAN, rgb_stddev=RGB_STDDEV)
 
     val_dataset = dataset
@@ -145,6 +147,12 @@ if __name__ == '__main__':
     parser.add_argument('--crop', default=0, type=int,
                         metavar='N',
                         help='crop size of input image (default: 0 => No cropping)')
+    parser.add_argument('--train-test-split', default='fixed', type=str,
+                        metavar='N', choices=['fixed'],
+                        help='method of splitting between train/test set (default: fixed)')
+    parser.add_argument('--train_ratio', default=0.8, type=float,
+                        metavar='N',
+                        help='ratio of training set (default: 0.8)')
 
     # Model structure
     parser.add_argument('--arch', '-a', metavar='ARCH', default='hg',
