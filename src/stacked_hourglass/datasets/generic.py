@@ -62,7 +62,7 @@ class Generic(data.Dataset):
         self.mode = mode
 
         # create train/val split
-        if train_test_split == 'fixed' & train_ratio < 1 & train_ratio >= 0:
+        if train_test_split == 'fixed' and train_ratio < 1 and train_ratio >= 0:
             self.train_list = self.anno[0:int(len(self.anno) * train_ratio)]
             self.valid_list = self.anno[int(len(self.anno) * train_ratio):]
         self.mean = rgb_mean
