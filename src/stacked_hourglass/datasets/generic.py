@@ -2,7 +2,6 @@
 import random
 
 import pandas as pd
-from sklearn.model_selection import train_test_split
 import numpy as np
 import torch
 import torch.utils.data as data
@@ -44,6 +43,7 @@ class Generic(data.Dataset):
                  is_train=True, inp_res=256, out_res=64, sigma=1,
                  crop=False, crop_size=512,
                  scale_factor=0, rot_factor=0, fliplr=False,
+                 train_test_split='fixed', train_ratio=0.8,
                  label_type='Gaussian', mode='original',
                  rgb_mean=RGB_MEAN, rgb_stddev=RGB_STDDEV):
         """Initialize object."""
@@ -62,9 +62,9 @@ class Generic(data.Dataset):
         self.mode = mode
 
         # create train/val split
-
-        self.train_list = self.anno[0:int(len(self.anno) * 0.8)]
-        self.valid_list = self.anno[int(len(self.anno) * 0.8) + 1:]
+        if train_test_split == 'fixed' & train_ratio < 1 & train_ratio >= 0:
+            self.train_list = self.anno[0:int(len(self.anno) * train_ratio)]
+            self.valid_list = self.anno[int(len(self.anno) * train_ratio):]
         self.mean = rgb_mean
         self.std = rgb_stddev
 
